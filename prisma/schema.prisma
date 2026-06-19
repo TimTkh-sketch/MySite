@@ -1,0 +1,244 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  STORE_OWNER
+  STORE_MANAGER
+  CUSTOMER
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?
+  role          UserRole  @default(CUSTOMER)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts Account[]
+  sessions Session[]
+  stores   StoreUser[]
+  orders   Order[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Store {
+  id           String   @id @default(cuid())
+  name         String
+  slug         String   @unique
+  domain       String?  @unique
+  description  String?  @db.Text
+  logo         String?
+  favicon      String?
+  primaryColor String   @default("#1a1a1a")
+  accentColor  String   @default("#e53e3e")
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  users      StoreUser[]
+  categories Category[]
+  products   Product[]
+  orders     Order[]
+  settings   StoreSettings?
+  banners    Banner[]
+}
+
+model StoreSettings {
+  id              String  @id @default(cuid())
+  storeId         String  @unique
+  phone           String?
+  address         String?
+  workingHours    String?
+  metaTitle       String?
+  metaDesc        String? @db.Text
+  socialVk        String?
+  socialTg        String?
+  yandexMetrika   String?
+  freeShippingFrom Int?
+  shippingCost    Int?
+
+  store Store @relation(fields: [storeId], references: [id], onDelete: Cascade)
+}
+
+model StoreUser {
+  id      String   @id @default(cuid())
+  storeId String
+  userId  String
+  role    UserRole @default(STORE_MANAGER)
+
+  store Store @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([storeId, userId])
+}
+
+model Category {
+  id          String   @id @default(cuid())
+  storeId     String
+  parentId    String?
+  name        String
+  slug        String
+  description String?  @db.Text
+  image       String?
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  store    Store      @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  parent   Category?  @relation("CategoryChildren", fields: [parentId], references: [id])
+  children Category[] @relation("CategoryChildren")
+  products Product[]
+
+  @@unique([storeId, slug])
+}
+
+model Product {
+  id           String   @id @default(cuid())
+  storeId      String
+  categoryId   String?
+  name         String
+  slug         String
+  description  String?  @db.Text
+  price        Float
+  comparePrice Float?
+  sku          String?
+  stock        Int      @default(0)
+  isActive     Boolean  @default(true)
+  isFeatured   Boolean  @default(false)
+  images       String[] @default([])
+  tags         String[] @default([])
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  store      Store            @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  category   Category?        @relation(fields: [categoryId], references: [id])
+  orderItems OrderItem[]
+  variants   ProductVariant[]
+
+  @@unique([storeId, slug])
+}
+
+model ProductVariant {
+  id        String  @id @default(cuid())
+  productId String
+  name      String
+  value     String
+  price     Float?
+  stock     Int     @default(0)
+  sku       String?
+
+  product    Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  orderItems OrderItem[]
+}
+
+model Banner {
+  id        String   @id @default(cuid())
+  storeId   String
+  title     String
+  subtitle  String?
+  image     String
+  link      String?
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  store Store @relation(fields: [storeId], references: [id], onDelete: Cascade)
+}
+
+model Order {
+  id            String        @id @default(cuid())
+  storeId       String
+  userId        String?
+  number        Int
+  status        OrderStatus   @default(PENDING)
+  paymentStatus PaymentStatus @default(PENDING)
+  total         Float
+  subtotal      Float
+  shipping      Float         @default(0)
+  discount      Float         @default(0)
+  customerName  String
+  customerEmail String
+  customerPhone String?
+  address       String?
+  city          String?
+  zip           String?
+  comment       String?       @db.Text
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  store Store       @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  user  User?       @relation(fields: [userId], references: [id])
+  items OrderItem[]
+
+  @@unique([storeId, number])
+}
+
+model OrderItem {
+  id        String  @id @default(cuid())
+  orderId   String
+  productId String
+  variantId String?
+  name      String
+  price     Float
+  quantity  Int
+  image     String?
+
+  order   Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product         @relation(fields: [productId], references: [id])
+  variant ProductVariant? @relation(fields: [variantId], references: [id])
+}
