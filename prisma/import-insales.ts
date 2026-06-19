@@ -4,11 +4,13 @@
  */
 import { PrismaClient } from "../src/generated/prisma/client"
 import { PrismaPg } from "@prisma/adapter-pg"
+import { Pool } from "pg"
 import bcrypt from "bcryptjs"
 import * as fs from "fs"
 import "dotenv/config"
 
-const adapter = new PrismaPg(process.env.DATABASE_URL!)
+const pool = new Pool({ connectionString: process.env.DATABASE_URL!, max: 8 })
+const adapter = new PrismaPg(pool)
 const db = new PrismaClient({ adapter } as never)
 
 // ─── InSales types ────────────────────────────────────────────────────────────
@@ -296,7 +298,7 @@ async function main() {
   let imported = 0
   let skipped = 0
 
-  const BATCH = 50
+  const BATCH = 20
   const chunks: InsalesProduct[][] = []
   const toImport = active.filter((p) => p.images.length > 0 && p.variants.length > 0)
 
