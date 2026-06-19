@@ -20,11 +20,23 @@ interface InsalesImage {
   position: number
 }
 
+interface InsalesOptionValue {
+  title: string
+  option_name_id: number
+}
+
 interface InsalesVariant {
+  title: string
   price: string
   old_price: string | null
   quantity: number | null
   sku: string | null
+  option_values: InsalesOptionValue[]
+}
+
+interface InsalesOptionName {
+  id: number
+  title: string
 }
 
 interface InsalesProduct {
@@ -39,6 +51,7 @@ interface InsalesProduct {
   collections_ids: number[]
   images: InsalesImage[]
   variants: InsalesVariant[]
+  option_names: InsalesOptionName[]
 }
 
 interface InsalesCollection {
@@ -186,44 +199,44 @@ async function main() {
       {
         storeId: store.id,
         title: "Скидка 500₽ на все наушники",
-        subtitle: "Только сейчас — выгодная акция на весь ассортимент наушников",
-        image: "https://static.insales-cdn.com/r/4aVimONKqms/rs:fit:2000:2000:1/plain/files/1/4969/124760937/original/%D0%A1%D0%BA%D0%B8%D0%B4%D0%BA%D0%B0_500___%D0%BD%D0%B0_%D0%B2%D1%81%D0%B5_%D0%9D%D0%90%D0%A3%D0%A8%D0%9D%D0%98%D0%9A%D0%98__1_.png@png",
+        subtitle: "",
+        image: "https://static.insales-cdn.com/files/1/4969/124760937/original/%D0%A1%D0%BA%D0%B8%D0%B4%D0%BA%D0%B0_500___%D0%BD%D0%B0_%D0%B2%D1%81%D0%B5_%D0%9D%D0%90%D0%A3%D0%A8%D0%9D%D0%98%D0%9A%D0%98__1_.png",
         link: "/store/gadget-market/catalog?category=tv-audio",
         sortOrder: 0,
         isActive: true,
       },
       {
         storeId: store.id,
-        title: "Apple — официальный ресселер",
-        subtitle: "iPhone, MacBook, AirPods с гарантией 2 года",
-        image: "https://static.insales-cdn.com/r/Sywe8GBOFvw/rs:fill-down:747:598:1/q:80/plain/files/1/3977/106778505/original/apple1__1_.png@webp",
+        title: "Apple",
+        subtitle: "",
+        image: "https://static.insales-cdn.com/files/1/3977/106778505/original/apple1__1_.png",
         link: "/store/gadget-market/catalog?category=apple",
         sortOrder: 1,
         isActive: true,
       },
       {
         storeId: store.id,
-        title: "Samsung Galaxy S25 Ultra",
-        subtitle: "Флагман 2025 года — от 66 490 ₽",
-        image: "https://static.insales-cdn.com/r/-QMHY-2a3wc/rs:fill-down:747:598:1/q:80/plain/files/1/3985/106778513/original/Samsung.png@webp",
+        title: "Samsung",
+        subtitle: "",
+        image: "https://static.insales-cdn.com/files/1/3985/106778513/original/Samsung.png",
         link: "/store/gadget-market/catalog?category=samsung",
         sortOrder: 2,
         isActive: true,
       },
       {
         storeId: store.id,
-        title: "Xiaomi 2025",
-        subtitle: "Новинки Xiaomi — смартфоны, пылесосы, аксессуары",
-        image: "https://static.insales-cdn.com/r/k8eeYkz0zQw/rs:fill-down:747:598:1/q:80/plain/files/1/4065/108351457/original/2025-12-03_11.38.31.jpg@webp",
+        title: "Xiaomi",
+        subtitle: "",
+        image: "https://static.insales-cdn.com/files/1/4065/108351457/original/2025-12-03_11.38.31.jpg",
         link: "/store/gadget-market/catalog?category=xiaomi",
         sortOrder: 3,
         isActive: true,
       },
       {
         storeId: store.id,
-        title: "Dyson — умная техника для дома",
-        subtitle: "Пылесосы, фены, очистители воздуха",
-        image: "https://static.insales-cdn.com/r/oNRuvikLA8Y/rs:fill-down:747:598:1/q:80/plain/files/1/4073/108351465/original/2025-12-03_11.39.28.jpg@webp",
+        title: "Dyson",
+        subtitle: "",
+        image: "https://static.insales-cdn.com/files/1/4073/108351465/original/2025-12-03_11.39.28.jpg",
         link: "/store/gadget-market/catalog?category=dyson",
         sortOrder: 4,
         isActive: true,
@@ -304,24 +317,25 @@ async function main() {
           ? (catDbId.get(subInsalesId) ?? catDbId.get(mainInsalesId)!)
           : catDbId.get(mainInsalesId)!
 
-        const variant = p.variants[0]
-        const price = Math.round(parseFloat(variant.price))
-        const comparePrice = variant.old_price ? Math.round(parseFloat(variant.old_price)) : null
-        const stock = variant.quantity ?? 100
+        // Min price across all variants
+        const allPrices = p.variants.map((v) => parseFloat(v.price)).filter((x) => !isNaN(x))
+        const price = Math.round(Math.min(...allPrices))
+        // Compare price from first variant with old_price
+        const firstWithOld = p.variants.find((v) => v.old_price)
+        const comparePrice = firstWithOld ? Math.round(parseFloat(firstWithOld.old_price!)) : null
+        // Total stock
+        const stock = p.variants.reduce((sum, v) => sum + (v.quantity ?? 0), 0) || 100
 
         const images = p.images
           .sort((a, b) => a.position - b.position)
           .map((img) => img.large_url || img.original_url)
           .filter(Boolean)
 
-        const description = stripHtml(p.description || p.short_description)
-
-        // Make slug unique
-        const baseSlug = p.permalink.slice(0, 80)
-        const slug = baseSlug
+        const description = p.description || p.short_description || ""
+        const slug = p.permalink.slice(0, 80)
 
         try {
-          await db.product.upsert({
+          const saved = await db.product.upsert({
             where: { storeId_slug: { storeId: store.id, slug } },
             update: { price, comparePrice, stock, images, description, categoryId: categoryDbId },
             create: {
@@ -338,6 +352,30 @@ async function main() {
               description,
             },
           })
+
+          // Save variants (color/storage/sim options)
+          const hasOptions = p.option_names.length > 0 && p.variants.some((v) => v.option_values.length > 0)
+          if (hasOptions) {
+            await db.productVariant.deleteMany({ where: { productId: saved.id } })
+            const optionNameMap = new Map(p.option_names.map((o) => [o.id, o.title]))
+            await db.productVariant.createMany({
+              data: p.variants.map((v) => {
+                const opts: Record<string, string> = {}
+                for (const ov of v.option_values) {
+                  const name = optionNameMap.get(ov.option_name_id)
+                  if (name) opts[name] = ov.title
+                }
+                return {
+                  productId: saved.id,
+                  name: v.title || Object.values(opts).join(" / "),
+                  value: JSON.stringify(opts),
+                  price: parseFloat(v.price),
+                  stock: v.quantity ?? 0,
+                  sku: v.sku ?? null,
+                }
+              }),
+            })
+          }
           imported++
         } catch {
           skipped++
