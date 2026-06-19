@@ -3,8 +3,9 @@
 import { useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { ShoppingCart, Phone, Menu, X, ChevronDown } from "lucide-react"
+import { ShoppingCart, Phone, Menu, X, ChevronDown, Settings } from "lucide-react"
 import { useCart } from "./cart-provider"
+import { useSession } from "next-auth/react"
 
 interface Category {
   id: string
@@ -27,13 +28,15 @@ interface Store {
 
 export function StoreHeader({ store }: { store: Store }) {
   const { count } = useCart()
+  const { data: session } = useSession()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [openCat, setOpenCat] = useState<string | null>(null)
   const base = `/store/${store.slug}`
+  const isAdmin = session?.user?.role === "SUPER_ADMIN" || session?.user?.role === "STORE_OWNER" || session?.user?.role === "STORE_MANAGER"
 
   return (
     <header className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm">
-      <div className="bg-gray-900 text-white text-xs py-1.5">
+      <div className="bg-[#1a1a1a] text-white text-xs py-1.5">
         <div className="max-w-7xl mx-auto px-4 flex items-center justify-between">
           <span>{store.settings?.address}</span>
           <div className="flex items-center gap-4">
@@ -87,9 +90,18 @@ export function StoreHeader({ store }: { store: Store }) {
         </nav>
 
         <div className="flex items-center gap-3">
+          {isAdmin && (
+            <Link
+              href="/admin"
+              className="hidden sm:flex items-center gap-1.5 rounded-md border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+            >
+              <Settings className="h-3.5 w-3.5" />
+              Админка
+            </Link>
+          )}
           <Link
             href={`${base}/checkout`}
-            className="relative flex items-center gap-2 bg-gray-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors"
+            className="relative flex items-center gap-2 bg-[#FF6B35] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#e55a25] transition-colors"
           >
             <ShoppingCart className="h-4 w-4" />
             <span className="hidden sm:inline">Корзина</span>

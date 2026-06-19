@@ -64,7 +64,7 @@ export default async function CatalogPage({
             <div className="space-y-0.5">
               <Link
                 href={`${base}/catalog`}
-                className={`block rounded-md px-3 py-2 text-sm ${!selectedCategory ? "bg-gray-900 text-white" : "text-gray-700 hover:bg-gray-50"}`}
+                className={`block rounded-md px-3 py-2 text-sm ${!selectedCategory ? "bg-[#FF6B35] text-white" : "text-gray-700 hover:bg-gray-50"}`}
               >
                 Все товары ({total})
               </Link>
@@ -74,7 +74,7 @@ export default async function CatalogPage({
                   <Link
                     key={cat.id}
                     href={`${base}/catalog?category=${cat.slug}`}
-                    className={`block rounded-md px-3 py-2 text-sm ${selectedCategory?.id === cat.id ? "bg-gray-900 text-white" : "text-gray-700 hover:bg-gray-50"}`}
+                    className={`block rounded-md px-3 py-2 text-sm ${selectedCategory?.id === cat.id ? "bg-[#FF6B35] text-white" : "text-gray-700 hover:bg-gray-50"}`}
                   >
                     {cat.name}
                   </Link>
@@ -109,7 +109,7 @@ export default async function CatalogPage({
                 <Link
                   key={p}
                   href={`${base}/catalog?page=${p}${selectedCategory ? `&category=${selectedCategory.slug}` : ""}`}
-                  className={`px-3 py-1.5 text-sm rounded-md border ${p === page ? "bg-gray-900 text-white border-gray-900" : "border-gray-300 hover:bg-gray-50"}`}
+                  className={`px-3 py-1.5 text-sm rounded-md border ${p === page ? "bg-[#FF6B35] text-white border-[#FF6B35]" : "border-gray-300 hover:bg-gray-50"}`}
                 >
                   {p}
                 </Link>

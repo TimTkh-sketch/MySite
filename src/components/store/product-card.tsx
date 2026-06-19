@@ -54,7 +54,7 @@ export function ProductCard({ product, storeSlug }: { product: Product; storeSlu
         <button
           onClick={handleAddToCart}
           disabled={product.stock === 0}
-          className="absolute bottom-2 right-2 bg-gray-900 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-30 hover:bg-gray-700"
+          className="absolute bottom-2 right-2 bg-[#FF6B35] text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-30 hover:bg-[#e55a25]"
         >
           <ShoppingCart className="h-4 w-4" />
         </button>

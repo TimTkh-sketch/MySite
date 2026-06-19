@@ -43,7 +43,7 @@ export function AddToCartButton({ product }: { product: Product }) {
       className={`w-full h-12 font-semibold rounded-xl flex items-center justify-center gap-2 transition-all ${
         added
           ? "bg-green-600 text-white"
-          : "bg-gray-900 text-white hover:bg-gray-800"
+          : "bg-[#FF6B35] text-white hover:bg-[#e55a25]"
       }`}
     >
       {added ? (

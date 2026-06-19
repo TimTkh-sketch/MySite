@@ -58,7 +58,7 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
               {store.banners[0].link && (
                 <Link
                   href={store.banners[0].link}
-                  className="inline-block bg-white text-gray-900 font-semibold px-6 py-3 rounded-lg hover:bg-gray-100 transition-colors"
+                  className="inline-block bg-[#FF6B35] text-white font-semibold px-6 py-3 rounded-lg hover:bg-[#e55a25] transition-colors"
                 >
                   Перейти
                 </Link>
@@ -77,10 +77,14 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
                 <Link
                   key={cat.id}
                   href={`${base}/catalog?category=${cat.slug}`}
-                  className="flex flex-col items-center gap-2 p-4 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors text-center"
+                  className="flex flex-col items-center gap-2 p-3 rounded-xl bg-gray-50 hover:bg-orange-50 hover:border-[#FF6B35] border border-transparent transition-colors text-center"
                 >
-                  <div className="h-12 w-12 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 text-xs">
-                    {cat.name[0]}
+                  <div className="h-14 w-14 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center">
+                    {cat.image ? (
+                      <Image src={cat.image} alt={cat.name} width={56} height={56} className="object-cover h-full w-full" />
+                    ) : (
+                      <span className="text-gray-500 text-xs">{cat.name[0]}</span>
+                    )}
                   </div>
                   <span className="text-xs font-medium text-gray-700 leading-tight">{cat.name}</span>
                 </Link>
