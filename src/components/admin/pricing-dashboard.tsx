@@ -29,7 +29,7 @@ function buildMatches(units: PricingUnit[], competitorPrices: CompetitorPrice[])
 
     for (const cp of competitorPrices) {
       const score = matchScore(unit.searchName, cp.itemName)
-      if (score > 0.55 && (!best || score > best.score)) {
+      if (score > 0.90 && (!best || score > best.score || (score === best.score && cp.price < best.cp.price))) {
         best = { cp, score, name: cp.itemName }
       }
     }

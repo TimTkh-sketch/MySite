@@ -202,16 +202,21 @@ function deduplicateByMinPrice(items: ScrapedPrice[]): ScrapedPrice[] {
 // ── Name matching ─────────────────────────────────────────────────────────────
 
 // Words that identify the product category — must match exactly between names
+// "case" catches English "Case" in product names like "Clear Case for iPhone"
 const PRODUCT_TYPE_WORDS = [
   "iphone", "ipad", "macbook", "airpods", "appletv", "homepod",
   "galaxy", "redmi", "poco", "oneplus", "realme",
+  "case",
 ]
 
 // Variant qualifiers — if present in one name, MUST be present in the other
+// "pro" distinguishes iPhone 17 from iPhone 17 Pro, etc.
+// "5g" distinguishes Redmi Note 14 from Redmi Note 14 5G (different product)
 const VARIANT_QUALIFIERS = [
-  "max", "plus", "ultra", "mini", "air", "se", "lite",
+  "pro", "max", "plus", "ultra", "mini", "air", "se", "lite",
   "edge", "fe", "fold", "flip", "note", "tab",
   "esim", // eSIM-only is a distinct (cheaper) product vs regular SIM
+  "5g",   // 5G model is a distinct product from the 4G base model (especially for Xiaomi/Redmi)
 ]
 
 export function normalizeProductName(name: string): string {
@@ -221,10 +226,46 @@ export function normalizeProductName(name: string): string {
     .replace(/samsung\s+galaxy\s+/gi, "galaxy ")
     .replace(/(\d+)\s*гб/gi, "$1gb")
     .replace(/(\d+)\s*тб/gi, "$1tb")
+    // Strip release years in parens — "(2024)", "(2025)" etc.
+    .replace(/\(\d{4}\)/g, "")
     // Normalize eSIM-only marker → keep as discriminating "esim" token
     .replace(/\(?\s*e[\s-]?sim[\s-]?only\s*\)?/gi, "esim")
     // Strip non-discriminating SIM patterns (dual SIM, SIM+eSIM, nano SIM)
     .replace(/\b(dual[\s-]?sim|sim\s*\+\s*esim|nano[\s-]?sim|e[\s-]sim)\b/gi, "")
+    // "Pro+" / "S25+" → "pro plus" / "s25 plus" — preserves "+" as "plus" token
+    // Without this, "Pro+" and "Pro" both normalize to "pro" and become indistinguishable
+    .replace(/([a-z0-9])\+/gi, "$1 plus")
+    // Collapse English compound color names to their base color word
+    // trade59.ru uses single Russian words; our DB may have multi-word English names
+    .replace(/\bice\s+blue\b/gi, "blue")
+    .replace(/\bsilver\s+shadow\b/gi, "grey")
+    .replace(/\bsilver\s+chrome\b/gi, "silver")
+    .replace(/\bdark\s+blue\b/gi, "blue")
+    .replace(/\bnavy\b/gi, "blue")              // navy ≈ синий (dark blue)
+    .replace(/\bspace\s+black\b/gi, "black")
+    .replace(/\bspace\s+gre[ya]\b/gi, "grey")   // Space Gray / Space Grey
+    // Russian → English color translation (trade59.ru uses Russian colors for Samsung/Xiaomi)
+    // Must run BEFORE [^a-z0-9] stripping removes all Cyrillic characters
+    .replace(/серебрист\S*/gi, "silver")         // серебристый, etc. — BEFORE серый
+    .replace(/серый|серая/gi, "grey")
+    .replace(/золотист\S*|золотой|золотая/gi, "gold")
+    .replace(/черны[йя]|чёрны[йя]/gi, "black")
+    .replace(/белы[йя]/gi, "white")
+    .replace(/голубой|голубая/gi, "blue")
+    .replace(/синий|синяя/gi, "blue")
+    .replace(/зелён?ы[йя]/gi, "green")
+    .replace(/красны[йя]/gi, "red")
+    .replace(/розовы[йя]/gi, "pink")
+    .replace(/фиолетовы[йя]/gi, "purple")
+    .replace(/коричневы[йя]/gi, "brown")
+    .replace(/бежевы[йя]/gi, "beige")
+    .replace(/мятны[йя]/gi, "mint")
+    .replace(/лавандовы[йя]|лаванда/gi, "lavender")
+    .replace(/лайм/gi, "lime")
+    .replace(/оранжевы[йя]/gi, "orange")
+    .replace(/титановы[йя]|титан(?=\s|,|$)/gi, "titanium")
+    // Normalize gray/grey spelling (Apple uses "Space Gray", UK uses "grey")
+    .replace(/\bgray\b/gi, "grey")
     .replace(/[^a-z0-9]/gi, " ")
     .replace(/\s+/g, " ")
     .trim()

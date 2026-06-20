@@ -14,6 +14,21 @@ export interface PricingUnit {
   storeId: string
 }
 
+// Russian keywords that identify non-phone products (accessories, cables, chargers, etc.)
+// These must be checked BEFORE normalization because Cyrillic letters get stripped,
+// causing e.g. "Прозрачный чехол MacBook Air 13" → "macbook air 13" → false 1.0 match
+const ACCESSORY_RU =
+  /чехол|накладка|бампер|стекло\s*защитн|гидрогелев|пленка|ремешок|кабель|адаптер|зарядн|держател|хаб|конвертер|лоток|обложк|подставк/i
+
+function isAccessory(name: string, variants: { value: string }[]): boolean {
+  if (ACCESSORY_RU.test(name)) return true
+  // "Цвет чехла" variant key only appears on phone cases
+  return variants.some((v) => {
+    try { return "Цвет чехла" in (JSON.parse(v.value) as Record<string, string>) }
+    catch { return false }
+  })
+}
+
 // "eSIM" standalone → eSIM-only; anything else (SIM+eSIM, dual) → regular ""
 function normalizeSim(sim: string | null | undefined): "esim" | "" {
   if (!sim) return ""
@@ -52,6 +67,9 @@ export default async function PricingPage() {
   const units: PricingUnit[] = []
 
   for (const product of products) {
+    // Skip accessories — they won't match any trade59 competitor product
+    if (isAccessory(product.name, product.variants)) continue
+
     // group key = `${storage ?? ""}::${simGroup}::${color ?? ""}`
     const groups = new Map<
       string,
