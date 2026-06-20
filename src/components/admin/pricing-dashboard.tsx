@@ -3,17 +3,11 @@
 import { useState, useTransition, useMemo } from "react"
 import { RefreshCw, Check, TrendingDown, TrendingUp, Minus, ExternalLink, AlertCircle } from "lucide-react"
 import { formatPrice } from "@/lib/utils"
-import { applyProductPrice, applyBulkPrices } from "@/app/admin/pricing/actions"
+import { applyStoragePrice, applyBulkStoragePrices } from "@/app/admin/pricing/actions"
 import { matchScore } from "@/lib/scraper"
+import type { PricingUnit } from "@/app/admin/pricing/page"
 
-const ADJUSTMENT = -500 // trade59 price - 500
-
-interface Product {
-  id: string
-  name: string
-  price: number
-  storeId: string
-}
+const ADJUSTMENT = -500
 
 interface CompetitorPrice {
   itemName: string
@@ -22,36 +16,32 @@ interface CompetitorPrice {
 }
 
 interface MatchedRow {
-  product: Product
+  unit: PricingUnit
   competitorPrice: CompetitorPrice | null
   competitorName: string | null
   suggestedPrice: number | null
-  diff: number | null // our price - suggested
+  diff: number | null
 }
 
-function buildMatches(products: Product[], competitorPrices: CompetitorPrice[]): MatchedRow[] {
-  return products.map((product) => {
+function buildMatches(units: PricingUnit[], competitorPrices: CompetitorPrice[]): MatchedRow[] {
+  return units.map((unit) => {
     let best: { cp: CompetitorPrice; score: number; name: string } | null = null
 
     for (const cp of competitorPrices) {
-      const score = matchScore(product.name, cp.itemName)
+      const score = matchScore(unit.searchName, cp.itemName)
       if (score > 0.55 && (!best || score > best.score)) {
         best = { cp, score, name: cp.itemName }
       }
     }
 
-    if (!best) return { product, competitorPrice: null, competitorName: null, suggestedPrice: null, diff: null }
+    if (!best) {
+      return { unit, competitorPrice: null, competitorName: null, suggestedPrice: null, diff: null }
+    }
 
     const suggestedPrice = best.cp.price + ADJUSTMENT
-    const diff = product.price - suggestedPrice
+    const diff = unit.currentPrice - suggestedPrice
 
-    return {
-      product,
-      competitorPrice: best.cp,
-      competitorName: best.name,
-      suggestedPrice,
-      diff,
-    }
+    return { unit, competitorPrice: best.cp, competitorName: best.name, suggestedPrice, diff }
   })
 }
 
@@ -78,11 +68,11 @@ function DiffBadge({ diff }: { diff: number }) {
 }
 
 export function PricingDashboard({
-  products,
+  units,
   competitorPrices,
   trade59Count,
 }: {
-  products: Product[]
+  units: PricingUnit[]
   competitorPrices: CompetitorPrice[]
   trade59Count: number
 }) {
@@ -93,10 +83,7 @@ export function PricingDashboard({
   const [, startTransition] = useTransition()
   const [filter, setFilter] = useState<"all" | "needs_change" | "no_match">("all")
 
-  const rows = useMemo(
-    () => buildMatches(products, competitorPrices),
-    [products, competitorPrices]
-  )
+  const rows = useMemo(() => buildMatches(units, competitorPrices), [units, competitorPrices])
 
   const filtered = useMemo(() => {
     if (filter === "needs_change") return rows.filter((r) => r.diff !== null && Math.abs(r.diff) >= 100)
@@ -105,6 +92,7 @@ export function PricingDashboard({
   }, [rows, filter])
 
   const changesNeeded = rows.filter((r) => r.diff !== null && Math.abs(r.diff) >= 100)
+  const matchedCount = rows.filter((r) => r.competitorPrice !== null).length
 
   async function handleScrape() {
     setScraping(true)
@@ -117,7 +105,6 @@ export function PricingDashboard({
       })
       const data = await res.json()
       setScrapeMsg(`Обновлено: trade59 — ${data.scraped?.trade59 ?? 0} позиций`)
-      // Reload to get fresh data
       window.location.reload()
     } catch {
       setScrapeMsg("Ошибка при парсинге")
@@ -129,39 +116,43 @@ export function PricingDashboard({
   function handleApply(row: MatchedRow) {
     if (!row.suggestedPrice) return
     startTransition(async () => {
-      await applyProductPrice(row.product.id, row.suggestedPrice!)
-      setApplied((prev) => new Set([...prev, row.product.id]))
+      await applyStoragePrice(row.unit.productId, row.unit.storageName, row.suggestedPrice!)
+      setApplied((prev) => new Set([...prev, row.unit.key]))
     })
   }
 
   function handleBulkApply() {
     const toApply = filtered
-      .filter((r) => selected.has(r.product.id) && r.suggestedPrice && !applied.has(r.product.id))
-      .map((r) => ({ productId: r.product.id, newPrice: r.suggestedPrice! }))
+      .filter((r) => selected.has(r.unit.key) && r.suggestedPrice && !applied.has(r.unit.key))
+      .map((r) => ({ productId: r.unit.productId, storageName: r.unit.storageName, newPrice: r.suggestedPrice! }))
 
     if (toApply.length === 0) return
 
     startTransition(async () => {
-      await applyBulkPrices(toApply)
-      setApplied((prev) => new Set([...prev, ...toApply.map((i) => i.productId)]))
+      await applyBulkStoragePrices(toApply)
+      setApplied(
+        (prev) =>
+          new Set([...prev, ...toApply.map((i) => `${i.productId}::${i.storageName ?? ""}`)])
+      )
       setSelected(new Set())
     })
   }
 
-  function toggleSelect(id: string) {
+  function toggleSelect(key: string) {
     setSelected((prev) => {
       const next = new Set(prev)
-      if (next.has(id)) next.delete(id); else next.add(id)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
       return next
     })
   }
 
   function selectAll() {
-    const ids = filtered.filter((r) => r.suggestedPrice && !applied.has(r.product.id)).map((r) => r.product.id)
-    setSelected(new Set(ids))
+    const keys = filtered
+      .filter((r) => r.suggestedPrice && !applied.has(r.unit.key))
+      .map((r) => r.unit.key)
+    setSelected(new Set(keys))
   }
-
-  const matchedCount = rows.filter((r) => r.competitorPrice !== null).length
 
   return (
     <div className="space-y-4">
@@ -182,16 +173,14 @@ export function PricingDashboard({
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <button
-            onClick={handleScrape}
-            disabled={scraping}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-gray-900 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50 transition-colors"
-          >
-            <RefreshCw className={`h-4 w-4 ${scraping ? "animate-spin" : ""}`} />
-            {scraping ? "Парсим..." : "Обновить цены конкурента"}
-          </button>
-        </div>
+        <button
+          onClick={handleScrape}
+          disabled={scraping}
+          className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-gray-900 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50 transition-colors"
+        >
+          <RefreshCw className={`h-4 w-4 ${scraping ? "animate-spin" : ""}`} />
+          {scraping ? "Парсим..." : "Обновить цены конкурента"}
+        </button>
       </div>
 
       {scrapeMsg && (
@@ -206,19 +195,23 @@ export function PricingDashboard({
           <AlertCircle className="h-5 w-5 shrink-0" />
           <div>
             <p className="font-medium">Нет данных о ценах конкурента</p>
-            <p className="text-xs mt-0.5 text-orange-500">Нажмите «Обновить цены конкурента» чтобы спарсить trade59.ru</p>
+            <p className="text-xs mt-0.5 text-orange-500">
+              Нажмите «Обновить цены конкурента» чтобы спарсить trade59.ru
+            </p>
           </div>
         </div>
       )}
 
-      {/* Filters + Bulk action */}
+      {/* Filters + Bulk */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="flex gap-1.5">
-          {([
-            ["all", "Все товары", rows.length],
-            ["needs_change", "Нужно обновить", changesNeeded.length],
-            ["no_match", "Не найдено", rows.filter((r) => !r.competitorPrice).length],
-          ] as const).map(([f, label, count]) => (
+          {(
+            [
+              ["all", "Все товары", rows.length],
+              ["needs_change", "Нужно обновить", changesNeeded.length],
+              ["no_match", "Не найдено", rows.filter((r) => !r.competitorPrice).length],
+            ] as const
+          ).map(([f, label, count]) => (
             <button
               key={f}
               onClick={() => setFilter(f)}
@@ -252,8 +245,13 @@ export function PricingDashboard({
               <th className="px-3 py-3 w-10">
                 <input
                   type="checkbox"
-                  onChange={(e) => e.target.checked ? selectAll() : setSelected(new Set())}
-                  checked={selected.size > 0 && selected.size === filtered.filter((r) => r.suggestedPrice).length}
+                  onChange={(e) =>
+                    e.target.checked ? selectAll() : setSelected(new Set())
+                  }
+                  checked={
+                    selected.size > 0 &&
+                    selected.size === filtered.filter((r) => r.suggestedPrice).length
+                  }
                   className="w-4 h-4 accent-orange-500 cursor-pointer"
                 />
               </th>
@@ -267,19 +265,25 @@ export function PricingDashboard({
           </thead>
           <tbody className="divide-y divide-gray-50">
             {filtered.map((row) => {
-              const isApplied = applied.has(row.product.id)
+              const isApplied = applied.has(row.unit.key)
               const hasChange = row.diff !== null && Math.abs(row.diff) >= 100
               return (
                 <tr
-                  key={row.product.id}
-                  className={`transition-colors ${isApplied ? "bg-green-50/40" : hasChange ? "hover:bg-orange-50/30" : "hover:bg-gray-50/60"}`}
+                  key={row.unit.key}
+                  className={`transition-colors ${
+                    isApplied
+                      ? "bg-green-50/40"
+                      : hasChange
+                        ? "hover:bg-orange-50/30"
+                        : "hover:bg-gray-50/60"
+                  }`}
                 >
                   <td className="px-3 py-3">
                     {row.suggestedPrice && !isApplied && (
                       <input
                         type="checkbox"
-                        checked={selected.has(row.product.id)}
-                        onChange={() => toggleSelect(row.product.id)}
+                        checked={selected.has(row.unit.key)}
+                        onChange={() => toggleSelect(row.unit.key)}
                         className="w-4 h-4 accent-orange-500 cursor-pointer"
                       />
                     )}
@@ -287,16 +291,26 @@ export function PricingDashboard({
                   </td>
 
                   <td className="px-3 py-3">
-                    <p className="font-medium text-gray-900 line-clamp-1">{row.product.name}</p>
+                    <p className="font-medium text-gray-900 line-clamp-1">
+                      {row.unit.productName}
+                      {row.unit.storageName && (
+                        <span className="ml-1.5 text-sm font-normal text-gray-500">
+                          {row.unit.storageName}
+                        </span>
+                      )}
+                    </p>
                     {row.competitorName && (
-                      <p className="text-xs text-gray-400 truncate mt-0.5" title={row.competitorName}>
+                      <p
+                        className="text-xs text-gray-400 truncate mt-0.5"
+                        title={row.competitorName}
+                      >
                         ≈ {row.competitorName}
                       </p>
                     )}
                   </td>
 
                   <td className="px-3 py-3 font-medium text-gray-900 whitespace-nowrap">
-                    {formatPrice(row.product.price)}
+                    {formatPrice(row.unit.currentPrice)}
                   </td>
 
                   <td className="px-3 py-3">
@@ -317,7 +331,9 @@ export function PricingDashboard({
 
                   <td className="px-3 py-3 whitespace-nowrap">
                     {row.suggestedPrice ? (
-                      <span className={`font-semibold ${isApplied ? "text-green-600" : "text-orange-600"}`}>
+                      <span
+                        className={`font-semibold ${isApplied ? "text-green-600" : "text-orange-600"}`}
+                      >
                         {formatPrice(row.suggestedPrice)}
                       </span>
                     ) : (

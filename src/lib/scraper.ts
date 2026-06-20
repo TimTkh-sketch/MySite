@@ -201,14 +201,26 @@ function deduplicateByMinPrice(items: ScrapedPrice[]): ScrapedPrice[] {
 
 // ── Name matching ─────────────────────────────────────────────────────────────
 
+// Words that identify the product category — must match exactly between names
+const PRODUCT_TYPE_WORDS = [
+  "iphone", "ipad", "macbook", "airpods", "appletv", "homepod",
+  "galaxy", "redmi", "poco", "oneplus", "realme",
+]
+
+// Variant qualifiers — if present in one name, MUST be present in the other
+const VARIANT_QUALIFIERS = [
+  "max", "plus", "ultra", "mini", "air", "se", "lite",
+  "edge", "fe", "fold", "flip", "note", "tab",
+]
+
 export function normalizeProductName(name: string): string {
   return name
     .toLowerCase()
     .replace(/apple\s+/gi, "")
-    .replace(/samsung\s+galaxy\s+/gi, "samsung ")
+    .replace(/samsung\s+galaxy\s+/gi, "galaxy ")
     .replace(/(\d+)\s*гб/gi, "$1gb")
     .replace(/(\d+)\s*тб/gi, "$1tb")
-    .replace(/\s*(esim|e-sim|esim-only|dual.?sim|sim\s*\+\s*esim|nano-sim)\s*/gi, " ")
+    .replace(/\s*(esim|e-sim|esim-only|dual.?sim|sim\s*\+\s*esim|nano-sim|nano sim)\s*/gi, " ")
     .replace(/[^a-z0-9]/gi, " ")
     .replace(/\s+/g, " ")
     .trim()
@@ -219,8 +231,21 @@ export function matchScore(ourName: string, competitorName: string): number {
   const comp = normalizeProductName(competitorName)
 
   const ourTokens = our.split(" ").filter((t) => t.length > 1)
-  const compSet = new Set(comp.split(" ").filter((t) => t.length > 1))
+  const compTokens = comp.split(" ").filter((t) => t.length > 1)
+  const compSet = new Set(compTokens)
+  const ourSet = new Set(ourTokens)
 
+  // Product type must match — prevents MacBook ↔ iPhone cross-matching
+  for (const word of PRODUCT_TYPE_WORDS) {
+    if (ourSet.has(word) !== compSet.has(word)) return 0
+  }
+
+  // Variant qualifiers must match — prevents Pro ↔ Pro Max, S25 ↔ S25 Ultra etc.
+  for (const kw of VARIANT_QUALIFIERS) {
+    if (ourSet.has(kw) !== compSet.has(kw)) return 0
+  }
+
+  // Regular token overlap (from our name's perspective)
   const matches = ourTokens.filter((t) => compSet.has(t))
   return matches.length / Math.max(ourTokens.length, 1)
 }
