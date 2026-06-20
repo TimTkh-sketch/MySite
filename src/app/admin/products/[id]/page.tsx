@@ -1,12 +1,13 @@
 import { notFound } from "next/navigation"
 import { db } from "@/lib/db"
 import { ProductForm } from "@/components/admin/product-form"
+import { VariantImages } from "@/components/admin/variant-images"
 
 export default async function EditProductPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
 
   const [product, stores, categories] = await Promise.all([
-    db.product.findUnique({ where: { id } }),
+    db.product.findUnique({ where: { id }, include: { variants: { orderBy: { price: "asc" } } } }),
     db.store.findMany({ select: { id: true, name: true } }),
     db.category.findMany({ select: { id: true, name: true, storeId: true } }),
   ])
@@ -17,6 +18,7 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
     <div className="space-y-6">
       <h1 className="text-2xl font-bold text-gray-900">Редактировать товар</h1>
       <ProductForm product={product} stores={stores} categories={categories} />
+      <VariantImages variants={product.variants} productImages={product.images} />
     </div>
   )
 }

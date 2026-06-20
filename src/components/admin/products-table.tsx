@@ -3,9 +3,26 @@
 import { useState, useTransition, useRef } from "react"
 import Image from "next/image"
 import Link from "next/link"
-import { ChevronDown, ChevronRight, Pencil, ArrowUp, ArrowDown } from "lucide-react"
+import { ChevronDown, ChevronRight, Pencil, GripVertical } from "lucide-react"
 import { formatPrice } from "@/lib/utils"
-import { moveProduct, updateProductPrice, updateVariantPrice } from "@/app/admin/products/actions"
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core"
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable"
+import { CSS } from "@dnd-kit/utilities"
+import { reorderProducts, updateProductPrice, updateVariantPrice } from "@/app/admin/products/actions"
 import { DeleteProductButton } from "@/components/admin/delete-product-button"
 
 interface Variant {
@@ -14,6 +31,7 @@ interface Variant {
   price: number | null
   stock: number
   sku: string | null
+  image: string | null
 }
 
 interface Product {
@@ -72,14 +90,19 @@ function PriceCell({ value, onSave }: { value: number; onSave: (v: number) => Pr
   )
 }
 
-function ProductRow({ product, isFirst, isLast, storeId }: {
-  product: Product
-  isFirst: boolean
-  isLast: boolean
-  storeId: string
-}) {
+function SortableProductRow({ product }: { product: Product }) {
   const [expanded, setExpanded] = useState(false)
-  const [, startTransition] = useTransition()
+
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: product.id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.4 : 1,
+    position: isDragging ? ("relative" as const) : undefined,
+    zIndex: isDragging ? 999 : undefined,
+    backgroundColor: isDragging ? "#f9fafb" : undefined,
+  }
 
   const variantCount = product.variants.length
   const variantPrices = product.variants.map((v) => v.price ?? product.price)
@@ -87,31 +110,19 @@ function ProductRow({ product, isFirst, isLast, storeId }: {
   const maxPrice = variantPrices.length ? Math.max(...variantPrices) : product.price
   const hasRange = maxPrice > minPrice
 
-  function move(dir: "up" | "down") {
-    startTransition(() => moveProduct(product.id, dir, product.categoryId, storeId))
-  }
-
   return (
     <>
-      <tr className="hover:bg-gray-50/80 transition-colors group">
-        {/* Sort controls */}
+      <tr ref={setNodeRef} style={style} className="hover:bg-gray-50/80 transition-colors group">
+        {/* Drag handle */}
         <td className="px-2 py-3 w-8">
-          <div className="flex flex-col gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-            <button
-              onClick={() => move("up")}
-              disabled={isFirst}
-              className="p-0.5 rounded text-gray-400 hover:text-gray-700 hover:bg-gray-100 disabled:opacity-20 disabled:cursor-not-allowed transition-colors"
-            >
-              <ArrowUp className="h-3 w-3" />
-            </button>
-            <button
-              onClick={() => move("down")}
-              disabled={isLast}
-              className="p-0.5 rounded text-gray-400 hover:text-gray-700 hover:bg-gray-100 disabled:opacity-20 disabled:cursor-not-allowed transition-colors"
-            >
-              <ArrowDown className="h-3 w-3" />
-            </button>
-          </div>
+          <button
+            {...attributes}
+            {...listeners}
+            className="cursor-grab active:cursor-grabbing p-1 rounded text-gray-300 hover:text-gray-500 hover:bg-gray-100 transition-colors touch-none"
+            title="Перетащить для сортировки"
+          >
+            <GripVertical className="h-4 w-4" />
+          </button>
         </td>
 
         {/* Product name + image */}
@@ -135,7 +146,7 @@ function ProductRow({ product, isFirst, isLast, storeId }: {
                 {variantCount > 0 && (
                   <button
                     onClick={() => setExpanded((v) => !v)}
-                    className="flex items-center gap-0.5 text-xs text-blue-500 hover:text-blue-700 shrink-0 transition-colors"
+                    className="flex items-center gap-0.5 text-xs px-1.5 py-0.5 rounded border border-blue-200 bg-blue-50 text-blue-600 hover:bg-blue-100 shrink-0 transition-colors"
                   >
                     {expanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
                     {variantCount} {variantCount === 1 ? "вариант" : variantCount < 5 ? "варианта" : "вариантов"}
@@ -194,43 +205,66 @@ function ProductRow({ product, isFirst, isLast, storeId }: {
       </tr>
 
       {/* Expanded variants */}
-      {expanded && product.variants.map((variant) => (
-        <tr key={variant.id} className="bg-blue-50/40 border-l-2 border-l-blue-200">
-          <td className="px-2 py-2" />
-          <td className="px-4 py-2">
-            <div className="flex items-center gap-3 pl-6">
-              <div className="shrink-0 w-8 h-8 rounded-md overflow-hidden bg-white border border-gray-200">
-                {product.images[0] ? (
-                  <Image src={product.images[0]} alt={variant.name} width={32} height={32} className="w-full h-full object-contain" />
-                ) : (
-                  <div className="w-full h-full bg-gray-100" />
-                )}
+      {expanded && product.variants.map((variant) => {
+        const variantImg = variant.image || product.images[0]
+        return (
+          <tr key={variant.id} className="bg-blue-50/40 border-l-2 border-l-blue-200">
+            <td className="px-2 py-2" />
+            <td className="px-4 py-2">
+              <div className="flex items-center gap-3 pl-6">
+                <div className="shrink-0 w-8 h-8 rounded-md overflow-hidden bg-white border border-gray-200">
+                  {variantImg ? (
+                    <Image src={variantImg} alt={variant.name} width={32} height={32} className="w-full h-full object-contain" />
+                  ) : (
+                    <div className="w-full h-full bg-gray-100" />
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <span className="text-sm text-gray-700 line-clamp-1">{variant.name}</span>
+                  {variant.sku && <span className="text-xs text-gray-400 font-mono">{variant.sku}</span>}
+                </div>
               </div>
-              <div className="min-w-0">
-                <span className="text-sm text-gray-700 line-clamp-1">{variant.name}</span>
-                {variant.sku && <span className="text-xs text-gray-400 font-mono">{variant.sku}</span>}
-              </div>
-            </div>
-          </td>
-          <td className="px-4 py-2 hidden md:table-cell">
-            <PriceCell
-              value={variant.price ?? product.price}
-              onSave={(v) => updateVariantPrice(variant.id, v)}
-            />
-          </td>
-          <td className="px-4 py-2 hidden lg:table-cell">
-            <span className={`text-sm ${variant.stock > 0 ? "text-green-600" : "text-red-400"}`}>
-              {variant.stock > 0 ? `${variant.stock} шт.` : "Нет"}
-            </span>
-          </td>
-          <td colSpan={2} />
-        </tr>
-      ))}
+            </td>
+            <td className="px-4 py-2 hidden md:table-cell">
+              <PriceCell
+                value={variant.price ?? product.price}
+                onSave={(v) => updateVariantPrice(variant.id, v)}
+              />
+            </td>
+            <td className="px-4 py-2 hidden lg:table-cell">
+              <span className={`text-sm ${variant.stock > 0 ? "text-green-600" : "text-red-400"}`}>
+                {variant.stock > 0 ? `${variant.stock} шт.` : "Нет"}
+              </span>
+            </td>
+            <td colSpan={2} />
+          </tr>
+        )
+      })}
     </>
   )
 }
 
-export function ProductsTable({ products, storeId }: { products: Product[]; storeId: string }) {
+export function ProductsTable({ products: initialProducts }: { products: Product[]; storeId: string }) {
+  const [products, setProducts] = useState(initialProducts)
+  const [, startTransition] = useTransition()
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  )
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+
+    const oldIndex = products.findIndex((p) => p.id === active.id)
+    const newIndex = products.findIndex((p) => p.id === over.id)
+    const newOrder = arrayMove(products, oldIndex, newIndex)
+    setProducts(newOrder)
+
+    startTransition(() => reorderProducts(newOrder.map((p) => p.id)))
+  }
+
   return (
     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
       {products.length === 0 ? (
@@ -238,29 +272,27 @@ export function ProductsTable({ products, storeId }: { products: Product[]; stor
           <p className="text-gray-400">Товаров не найдено</p>
         </div>
       ) : (
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-gray-200 bg-gray-50 text-left text-xs font-medium uppercase tracking-wide text-gray-400">
-              <th className="px-2 py-3 w-8" />
-              <th className="px-4 py-3">Товар</th>
-              <th className="px-4 py-3 hidden md:table-cell">Цена</th>
-              <th className="px-4 py-3 hidden lg:table-cell">Остаток</th>
-              <th className="px-4 py-3 hidden lg:table-cell">Статус</th>
-              <th className="px-4 py-3 w-20" />
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-50">
-            {products.map((product, i) => (
-              <ProductRow
-                key={product.id}
-                product={product}
-                isFirst={i === 0}
-                isLast={i === products.length - 1}
-                storeId={storeId}
-              />
-            ))}
-          </tbody>
-        </table>
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={products.map((p) => p.id)} strategy={verticalListSortingStrategy}>
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-200 bg-gray-50 text-left text-xs font-medium uppercase tracking-wide text-gray-400">
+                  <th className="px-2 py-3 w-8" />
+                  <th className="px-4 py-3">Товар</th>
+                  <th className="px-4 py-3 hidden md:table-cell">Цена</th>
+                  <th className="px-4 py-3 hidden lg:table-cell">Остаток</th>
+                  <th className="px-4 py-3 hidden lg:table-cell">Статус</th>
+                  <th className="px-4 py-3 w-20" />
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {products.map((product) => (
+                  <SortableProductRow key={product.id} product={product} />
+                ))}
+              </tbody>
+            </table>
+          </SortableContext>
+        </DndContext>
       )}
     </div>
   )

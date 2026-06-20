@@ -24,9 +24,10 @@ interface Props {
     stock: number
   }
   variants: Variant[]
+  onVariantSelect?: (variantId: string) => void
 }
 
-export function ProductVariantSelector({ product, variants }: Props) {
+export function ProductVariantSelector({ product, variants, onVariantSelect }: Props) {
   const { addItem } = useCart()
   const [added, setAdded] = useState(false)
 
@@ -142,7 +143,20 @@ export function ProductVariantSelector({ product, variants }: Props) {
                 return (
                   <button
                     key={val}
-                    onClick={() => setSelected((s) => ({ ...s, [key]: val }))}
+                    onClick={() => {
+                      const newSel = { ...selected, [key]: val }
+                      setSelected(newSel)
+                      // Find matched variant and notify parent for image switch
+                      if (onVariantSelect) {
+                        const matched = variants.find((v) => {
+                          try {
+                            const opts: Record<string, string> = JSON.parse(v.value)
+                            return optionKeys.every((k) => (newSel[k] ? opts[k] === newSel[k] : true))
+                          } catch { return false }
+                        })
+                        if (matched) onVariantSelect(matched.id)
+                      }
+                    }}
                     disabled={!available}
                     className={`px-3.5 py-2 rounded-xl text-sm font-medium transition-all border-2 disabled:opacity-40 disabled:cursor-not-allowed ${
                       isSelected

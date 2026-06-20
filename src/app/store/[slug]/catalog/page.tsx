@@ -55,7 +55,7 @@ export default async function CatalogPage({
   const [products, total] = await Promise.all([
     db.product.findMany({
       where: whereClause,
-      orderBy: { createdAt: "desc" },
+      orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
       skip: (page - 1) * pageSize,
       take: pageSize,
     }),
