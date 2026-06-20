@@ -21,6 +21,13 @@ export default async function ProductsPage({
   const stores = await db.store.findMany({ select: { id: true, name: true }, take: 5 })
   const activeStoreId = storeId ?? stores[0]?.id
 
+  // Flat categories list for "move to category" action
+  const allCategories = await db.category.findMany({
+    where: { storeId: activeStoreId, isActive: true },
+    orderBy: { sortOrder: "asc" },
+    select: { id: true, name: true, parentId: true },
+  })
+
   // Category tree for sidebar
   const rootCategories = await db.category.findMany({
     where: { storeId: activeStoreId, parentId: null, isActive: true },
@@ -126,7 +133,7 @@ export default async function ProductsPage({
           </form>
 
           {/* Table */}
-          <ProductsTable products={products as never} storeId={activeStoreId ?? ""} />
+          <ProductsTable products={products as never} storeId={activeStoreId ?? ""} allCategories={allCategories} />
 
           {/* Pagination */}
           {totalPages > 1 && (

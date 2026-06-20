@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation"
 import { db } from "@/lib/db"
 import { ProductForm } from "@/components/admin/product-form"
-import { VariantImages } from "@/components/admin/variant-images"
+import { VariantManager } from "@/components/admin/variant-manager"
 
 export default async function EditProductPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -18,7 +18,20 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
     <div className="space-y-6">
       <h1 className="text-2xl font-bold text-gray-900">Редактировать товар</h1>
       <ProductForm product={product} stores={stores} categories={categories} />
-      <VariantImages variants={product.variants} productImages={product.images} />
+      <VariantManager
+        variants={product.variants.map((v) => ({
+          id: v.id,
+          name: v.name,
+          value: v.value,
+          price: v.price,
+          stock: v.stock,
+          sku: v.sku,
+          image: (v as unknown as { image: string | null }).image ?? null,
+        }))}
+        productId={product.id}
+        productImages={product.images}
+        basePrice={product.price}
+      />
     </div>
   )
 }

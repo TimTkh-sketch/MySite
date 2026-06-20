@@ -1,9 +1,9 @@
 "use client"
 
-import { useState, useTransition, useRef } from "react"
+import { useState, useTransition, useRef, useEffect } from "react"
 import Image from "next/image"
 import Link from "next/link"
-import { ChevronDown, ChevronRight, Pencil, GripVertical } from "lucide-react"
+import { ChevronDown, ChevronRight, Pencil, GripVertical, MoreHorizontal, Eye, EyeOff, FolderInput, ChevronsUp, ChevronsDown } from "lucide-react"
 import { formatPrice } from "@/lib/utils"
 import {
   DndContext,
@@ -22,7 +22,15 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
-import { reorderProducts, updateProductPrice, updateVariantPrice } from "@/app/admin/products/actions"
+import {
+  reorderProducts,
+  updateProductPrice,
+  updateVariantPrice,
+  toggleProductActive,
+  moveProductToCategory,
+  moveProductToStart,
+  moveProductToEnd,
+} from "@/app/admin/products/actions"
 import { DeleteProductButton } from "@/components/admin/delete-product-button"
 
 interface Variant {
@@ -48,6 +56,13 @@ interface Product {
   variants: Variant[]
 }
 
+interface Category {
+  id: string
+  name: string
+  parentId: string | null
+}
+
+// ── Price cell ────────────────────────────────────────────────────────────────
 function PriceCell({ value, onSave }: { value: number; onSave: (v: number) => Promise<void> }) {
   const [editing, setEditing] = useState(false)
   const [pending, startTransition] = useTransition()
@@ -82,7 +97,6 @@ function PriceCell({ value, onSave }: { value: number; onSave: (v: number) => Pr
     <button
       onClick={() => setEditing(true)}
       className="font-medium text-gray-900 hover:text-orange-600 transition-colors whitespace-nowrap group flex items-center gap-1"
-      title="Нажмите чтобы изменить цену"
     >
       {formatPrice(display)}
       <Pencil className="h-3 w-3 opacity-0 group-hover:opacity-40 transition-opacity" />
@@ -90,8 +104,148 @@ function PriceCell({ value, onSave }: { value: number; onSave: (v: number) => Pr
   )
 }
 
-function SortableProductRow({ product }: { product: Product }) {
+// ── Category picker modal ─────────────────────────────────────────────────────
+function CategoryPicker({ categories, onSelect, onClose }: {
+  categories: Category[]
+  onSelect: (id: string | null) => void
+  onClose: () => void
+}) {
+  const roots = categories.filter((c) => !c.parentId)
+  const children = (parentId: string) => categories.filter((c) => c.parentId === parentId)
+
+  return (
+    <div className="fixed inset-0 bg-black/30 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-xl w-80 max-h-[70vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
+        <div className="px-4 py-3 border-b border-gray-100">
+          <p className="font-semibold text-gray-900 text-sm">Перенести в категорию</p>
+        </div>
+        <div className="overflow-y-auto max-h-[50vh]">
+          {roots.map((root) => (
+            <div key={root.id}>
+              <button
+                onClick={() => { onSelect(root.id); onClose() }}
+                className="w-full text-left px-4 py-2.5 text-sm font-medium text-gray-800 hover:bg-orange-50 hover:text-orange-600 transition-colors"
+              >
+                {root.name}
+              </button>
+              {children(root.id).map((child) => (
+                <button
+                  key={child.id}
+                  onClick={() => { onSelect(child.id); onClose() }}
+                  className="w-full text-left pl-8 pr-4 py-2 text-sm text-gray-600 hover:bg-orange-50 hover:text-orange-600 transition-colors"
+                >
+                  {child.name}
+                </button>
+              ))}
+            </div>
+          ))}
+        </div>
+        <div className="px-4 py-3 border-t border-gray-100">
+          <button onClick={onClose} className="text-sm text-gray-500 hover:text-gray-700">Отмена</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Actions dropdown ──────────────────────────────────────────────────────────
+function ActionsDropdown({ product, allCategories, onActiveChange }: {
+  product: Product
+  allCategories: Category[]
+  onActiveChange: (isActive: boolean) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const [showCategoryPicker, setShowCategoryPicker] = useState(false)
+  const [, startTransition] = useTransition()
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function handle(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    if (open) document.addEventListener("mousedown", handle)
+    return () => document.removeEventListener("mousedown", handle)
+  }, [open])
+
+  function action(fn: () => Promise<void>) {
+    setOpen(false)
+    startTransition(fn)
+  }
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+        title="Действия"
+      >
+        <MoreHorizontal className="h-3.5 w-3.5" />
+      </button>
+
+      {open && (
+        <div className="absolute right-0 top-8 z-40 w-52 bg-white rounded-xl shadow-lg border border-gray-100 py-1 text-sm">
+          {/* Hide / Show */}
+          <button
+            onClick={() => action(async () => {
+              await toggleProductActive(product.id, !product.isActive)
+              onActiveChange(!product.isActive)
+            })}
+            className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-gray-50 text-left transition-colors"
+          >
+            {product.isActive
+              ? <><EyeOff className="h-4 w-4 text-gray-400" /><span>Скрыть на сайте</span></>
+              : <><Eye className="h-4 w-4 text-gray-400" /><span>Показать на сайте</span></>
+            }
+          </button>
+
+          <div className="my-1 border-t border-gray-50" />
+
+          {/* Move in category */}
+          <button
+            onClick={() => { setOpen(false); action(async () => { await moveProductToStart(product.id, product.categoryId, product.storeId) }) }}
+            className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-gray-50 text-left transition-colors"
+          >
+            <ChevronsUp className="h-4 w-4 text-gray-400" />
+            <span>В начало категории</span>
+          </button>
+          <button
+            onClick={() => action(async () => { await moveProductToEnd(product.id, product.categoryId, product.storeId) })}
+            className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-gray-50 text-left transition-colors"
+          >
+            <ChevronsDown className="h-4 w-4 text-gray-400" />
+            <span>В конец категории</span>
+          </button>
+
+          <div className="my-1 border-t border-gray-50" />
+
+          {/* Move to another category */}
+          <button
+            onClick={() => { setOpen(false); setShowCategoryPicker(true) }}
+            className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-gray-50 text-left transition-colors"
+          >
+            <FolderInput className="h-4 w-4 text-gray-400" />
+            <span>Перенести в категорию</span>
+          </button>
+        </div>
+      )}
+
+      {showCategoryPicker && (
+        <CategoryPicker
+          categories={allCategories}
+          onSelect={(id) => {
+            startTransition(async () => { await moveProductToCategory(product.id, id) })
+          }}
+          onClose={() => setShowCategoryPicker(false)}
+        />
+      )}
+    </div>
+  )
+}
+
+// ── Sortable row ──────────────────────────────────────────────────────────────
+function SortableProductRow({ product, allCategories }: { product: Product; allCategories: Category[] }) {
   const [expanded, setExpanded] = useState(false)
+  const [isActive, setIsActive] = useState(product.isActive)
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: product.id })
 
@@ -112,14 +266,13 @@ function SortableProductRow({ product }: { product: Product }) {
 
   return (
     <>
-      <tr ref={setNodeRef} style={style} className="hover:bg-gray-50/80 transition-colors group">
+      <tr ref={setNodeRef} style={style} className={`hover:bg-gray-50/80 transition-colors group ${!isActive ? "opacity-60" : ""}`}>
         {/* Drag handle */}
         <td className="px-2 py-3 w-8">
           <button
             {...attributes}
             {...listeners}
             className="cursor-grab active:cursor-grabbing p-1 rounded text-gray-300 hover:text-gray-500 hover:bg-gray-100 transition-colors touch-none"
-            title="Перетащить для сортировки"
           >
             <GripVertical className="h-4 w-4" />
           </button>
@@ -184,22 +337,27 @@ function SortableProductRow({ product }: { product: Product }) {
         {/* Status */}
         <td className="px-4 py-3 hidden lg:table-cell">
           <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${
-            product.isActive ? "bg-green-50 text-green-700" : "bg-gray-100 text-gray-500"
+            isActive ? "bg-green-50 text-green-700" : "bg-gray-100 text-gray-500"
           }`}>
-            <span className={`w-1.5 h-1.5 rounded-full ${product.isActive ? "bg-green-500" : "bg-gray-400"}`} />
-            {product.isActive ? "Активен" : "Скрыт"}
+            <span className={`w-1.5 h-1.5 rounded-full ${isActive ? "bg-green-500" : "bg-gray-400"}`} />
+            {isActive ? "Активен" : "Скрыт"}
           </span>
         </td>
 
         {/* Actions */}
-        <td className="px-4 py-3 w-20">
-          <div className="flex items-center gap-1.5 justify-end">
+        <td className="px-4 py-3 w-24">
+          <div className="flex items-center gap-1 justify-end">
             <Link href={`/admin/products/${product.id}`}>
               <button className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors">
                 <Pencil className="h-3.5 w-3.5" />
               </button>
             </Link>
             <DeleteProductButton id={product.id} />
+            <ActionsDropdown
+              product={{ ...product, isActive }}
+              allCategories={allCategories}
+              onActiveChange={setIsActive}
+            />
           </div>
         </td>
       </tr>
@@ -244,7 +402,16 @@ function SortableProductRow({ product }: { product: Product }) {
   )
 }
 
-export function ProductsTable({ products: initialProducts }: { products: Product[]; storeId: string }) {
+// ── Main export ───────────────────────────────────────────────────────────────
+export function ProductsTable({
+  products: initialProducts,
+  storeId: _storeId,
+  allCategories,
+}: {
+  products: Product[]
+  storeId: string
+  allCategories: Category[]
+}) {
   const [products, setProducts] = useState(initialProducts)
   const [, startTransition] = useTransition()
 
@@ -256,12 +423,10 @@ export function ProductsTable({ products: initialProducts }: { products: Product
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event
     if (!over || active.id === over.id) return
-
     const oldIndex = products.findIndex((p) => p.id === active.id)
     const newIndex = products.findIndex((p) => p.id === over.id)
     const newOrder = arrayMove(products, oldIndex, newIndex)
     setProducts(newOrder)
-
     startTransition(() => reorderProducts(newOrder.map((p) => p.id)))
   }
 
@@ -282,12 +447,12 @@ export function ProductsTable({ products: initialProducts }: { products: Product
                   <th className="px-4 py-3 hidden md:table-cell">Цена</th>
                   <th className="px-4 py-3 hidden lg:table-cell">Остаток</th>
                   <th className="px-4 py-3 hidden lg:table-cell">Статус</th>
-                  <th className="px-4 py-3 w-20" />
+                  <th className="px-4 py-3 w-24" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {products.map((product) => (
-                  <SortableProductRow key={product.id} product={product} />
+                  <SortableProductRow key={product.id} product={product} allCategories={allCategories} />
                 ))}
               </tbody>
             </table>
