@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Plus, Minus } from "lucide-react"
 
@@ -25,13 +25,19 @@ function TreeNode({ cat, selectedId, baseUrl, depth }: {
   baseUrl: string
   depth: number
 }) {
-  const [open, setOpen] = useState(
-    // Auto-open if selected category is a child of this node
-    cat.children.some((c) => c.id === selectedId || c.children?.some((cc) => cc.id === selectedId))
-    || cat.id === selectedId
-  )
+  const shouldBeOpen = (id?: string) =>
+    cat.id === id ||
+    cat.children.some((c) => c.id === id || c.children?.some((cc) => cc.id === id))
+
+  const [open, setOpen] = useState(() => shouldBeOpen(selectedId))
   const hasChildren = cat.children.length > 0
   const isSelected = cat.id === selectedId
+
+  // При клиенской навигации selectedId меняется через props, но useState не пересчитывается
+  useEffect(() => {
+    if (shouldBeOpen(selectedId)) setOpen(true)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedId])
 
   return (
     <div>
