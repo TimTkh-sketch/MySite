@@ -116,7 +116,12 @@ export function PricingDashboard({
   function handleApply(row: MatchedRow) {
     if (!row.suggestedPrice) return
     startTransition(async () => {
-      await applyStoragePrice(row.unit.productId, row.unit.storageName, row.suggestedPrice!)
+      await applyStoragePrice(
+        row.unit.productId,
+        row.unit.storageName,
+        row.unit.simGroup,
+        row.suggestedPrice!
+      )
       setApplied((prev) => new Set([...prev, row.unit.key]))
     })
   }
@@ -124,16 +129,18 @@ export function PricingDashboard({
   function handleBulkApply() {
     const toApply = filtered
       .filter((r) => selected.has(r.unit.key) && r.suggestedPrice && !applied.has(r.unit.key))
-      .map((r) => ({ productId: r.unit.productId, storageName: r.unit.storageName, newPrice: r.suggestedPrice! }))
+      .map((r) => ({
+        productId: r.unit.productId,
+        storageName: r.unit.storageName,
+        simGroup: r.unit.simGroup,
+        newPrice: r.suggestedPrice!,
+      }))
 
     if (toApply.length === 0) return
 
     startTransition(async () => {
       await applyBulkStoragePrices(toApply)
-      setApplied(
-        (prev) =>
-          new Set([...prev, ...toApply.map((i) => `${i.productId}::${i.storageName ?? ""}`)])
-      )
+      setApplied((prev) => new Set([...prev, ...toApply.map((i) => i.productId + "::" + (i.storageName ?? "") + "::" + i.simGroup)]))
       setSelected(new Set())
     })
   }
@@ -296,6 +303,11 @@ export function PricingDashboard({
                       {row.unit.storageName && (
                         <span className="ml-1.5 text-sm font-normal text-gray-500">
                           {row.unit.storageName}
+                        </span>
+                      )}
+                      {row.unit.simGroup === "esim" && (
+                        <span className="ml-1.5 text-xs font-medium bg-purple-50 text-purple-600 px-1.5 py-0.5 rounded">
+                          eSIM
                         </span>
                       )}
                     </p>

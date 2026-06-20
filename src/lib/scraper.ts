@@ -211,6 +211,7 @@ const PRODUCT_TYPE_WORDS = [
 const VARIANT_QUALIFIERS = [
   "max", "plus", "ultra", "mini", "air", "se", "lite",
   "edge", "fe", "fold", "flip", "note", "tab",
+  "esim", // eSIM-only is a distinct (cheaper) product vs regular SIM
 ]
 
 export function normalizeProductName(name: string): string {
@@ -220,7 +221,10 @@ export function normalizeProductName(name: string): string {
     .replace(/samsung\s+galaxy\s+/gi, "galaxy ")
     .replace(/(\d+)\s*гб/gi, "$1gb")
     .replace(/(\d+)\s*тб/gi, "$1tb")
-    .replace(/\s*(esim|e-sim|esim-only|dual.?sim|sim\s*\+\s*esim|nano-sim|nano sim)\s*/gi, " ")
+    // Normalize eSIM-only marker → keep as discriminating "esim" token
+    .replace(/\(?\s*e[\s-]?sim[\s-]?only\s*\)?/gi, "esim")
+    // Strip non-discriminating SIM patterns (dual SIM, SIM+eSIM, nano SIM)
+    .replace(/\b(dual[\s-]?sim|sim\s*\+\s*esim|nano[\s-]?sim|e[\s-]sim)\b/gi, "")
     .replace(/[^a-z0-9]/gi, " ")
     .replace(/\s+/g, " ")
     .trim()
