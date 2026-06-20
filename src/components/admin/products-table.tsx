@@ -246,17 +246,21 @@ function ActionsDropdown({ product, allCategories, onActiveChange }: {
 function SortableProductRow({ product, allCategories }: { product: Product; allCategories: Category[] }) {
   const [expanded, setExpanded] = useState(false)
   const [isActive, setIsActive] = useState(product.isActive)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => setMounted(true), [])
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: product.id })
 
-  const style = {
+  // Only apply DnD styles after client mount to avoid SSR/hydration mismatch
+  const style = mounted ? {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.4 : 1,
     position: isDragging ? ("relative" as const) : undefined,
     zIndex: isDragging ? 999 : undefined,
     backgroundColor: isDragging ? "#f9fafb" : undefined,
-  }
+  } : {}
 
   const variantCount = product.variants.length
   const variantPrices = product.variants.map((v) => v.price ?? product.price)
@@ -267,11 +271,11 @@ function SortableProductRow({ product, allCategories }: { product: Product; allC
   return (
     <>
       <tr ref={setNodeRef} style={style} className={`hover:bg-gray-50/80 transition-colors group ${!isActive ? "opacity-60" : ""}`}>
-        {/* Drag handle */}
+        {/* Drag handle — aria attrs added only after mount to avoid hydration mismatch */}
         <td className="px-2 py-3 w-8">
           <button
-            {...attributes}
-            {...listeners}
+            {...(mounted ? attributes : {})}
+            {...(mounted ? listeners : {})}
             className="cursor-grab active:cursor-grabbing p-1 rounded text-gray-300 hover:text-gray-500 hover:bg-gray-100 transition-colors touch-none"
           >
             <GripVertical className="h-4 w-4" />
