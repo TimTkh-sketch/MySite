@@ -272,3 +272,15 @@ model OrderItem {
   product Product         @relation(fields: [productId], references: [id])
   variant ProductVariant? @relation(fields: [variantId], references: [id])
 }
+
+model CompetitorPrice {
+  id         String   @id @default(cuid())
+  competitor String
+  itemName   String
+  price      Int
+  url        String
+  scrapedAt  DateTime @default(now())
+
+  @@unique([competitor, itemName])
+  @@index([competitor])
+}
