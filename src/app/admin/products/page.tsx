@@ -133,8 +133,13 @@ export default async function ProductsPage({
             />
           </form>
 
-          {/* Table */}
-          <ProductsTable products={products as never} storeId={activeStoreId ?? ""} allCategories={allCategories} />
+          {/* Table — key forces remount on filter change so useState(initialProducts) resets */}
+          <ProductsTable
+            key={`${activeStoreId ?? ""}-${categoryId ?? ""}-${query ?? ""}-${page}`}
+            products={products as never}
+            storeId={activeStoreId ?? ""}
+            allCategories={allCategories}
+          />
 
           {/* Pagination */}
           {totalPages > 1 && (
