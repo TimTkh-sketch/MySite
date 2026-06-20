@@ -1,11 +1,9 @@
 import Link from "next/link"
-import Image from "next/image"
 import { db } from "@/lib/db"
 import { Button } from "@/components/ui/button"
-import { Plus, Pencil, Search } from "lucide-react"
-import { formatPrice } from "@/lib/utils"
-import { DeleteProductButton } from "@/components/admin/delete-product-button"
+import { Plus, Search } from "lucide-react"
 import { CategoryTree } from "@/components/admin/category-tree"
+import { ProductsTable } from "@/components/admin/products-table"
 
 export default async function ProductsPage({
   searchParams,
@@ -56,9 +54,9 @@ export default async function ProductsPage({
       include: {
         category: { select: { name: true } },
         store: { select: { name: true } },
-        variants: { select: { id: true, price: true, name: true }, take: 20 },
+        variants: { select: { id: true, price: true, name: true, stock: true, sku: true }, take: 50 },
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
       skip: (page - 1) * pageSize,
       take: pageSize,
     }),
@@ -128,107 +126,7 @@ export default async function ProductsPage({
           </form>
 
           {/* Table */}
-          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-            {products.length === 0 ? (
-              <div className="p-16 text-center">
-                <p className="text-gray-400 mb-3">Товаров не найдено</p>
-                <Link href="/admin/products/new">
-                  <Button size="sm"><Plus className="h-4 w-4" />Добавить товар</Button>
-                </Link>
-              </div>
-            ) : (
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-gray-200 bg-gray-50 text-left text-xs font-medium uppercase tracking-wide text-gray-400">
-                    <th className="px-4 py-3">Товар</th>
-                    <th className="px-4 py-3 hidden md:table-cell">Цена</th>
-                    <th className="px-4 py-3 hidden lg:table-cell">Остаток</th>
-                    <th className="px-4 py-3 hidden lg:table-cell">Статус</th>
-                    <th className="px-4 py-3 w-20"></th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-50">
-                  {products.map((product) => {
-                    const variantCount = product.variants.length
-                    const variantPrices = product.variants.map((v) => v.price ?? product.price)
-                    const minPrice = variantPrices.length ? Math.min(...variantPrices) : product.price
-                    const maxPrice = variantPrices.length ? Math.max(...variantPrices) : product.price
-                    const hasRange = maxPrice > minPrice
-
-                    return (
-                      <tr key={product.id} className="hover:bg-gray-50/80 transition-colors">
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-3">
-                            <div className="shrink-0 w-11 h-11 rounded-lg overflow-hidden bg-gray-100 border border-gray-100">
-                              {product.images[0] ? (
-                                <Image
-                                  src={product.images[0]}
-                                  alt={product.name}
-                                  width={44}
-                                  height={44}
-                                  className="w-full h-full object-contain"
-                                />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center text-gray-300 text-xs">—</div>
-                              )}
-                            </div>
-                            <div className="min-w-0">
-                              <Link href={`/admin/products/${product.id}`} className="font-medium text-gray-900 hover:text-orange-600 transition-colors line-clamp-1">
-                                {product.name}
-                              </Link>
-                              <div className="flex items-center gap-2 mt-0.5">
-                                {product.category && (
-                                  <span className="text-xs text-gray-400 truncate">{product.category.name}</span>
-                                )}
-                                {variantCount > 0 && (
-                                  <span className="text-xs text-blue-500 shrink-0">
-                                    · {variantCount} {variantCount === 1 ? "вариант" : variantCount < 5 ? "варианта" : "вариантов"}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 hidden md:table-cell">
-                          <span className="font-medium text-gray-900 whitespace-nowrap">
-                            {hasRange
-                              ? `${formatPrice(minPrice)} — ${formatPrice(maxPrice)}`
-                              : formatPrice(product.price)}
-                          </span>
-                          {product.comparePrice && !hasRange && (
-                            <p className="text-xs text-gray-400 line-through">{formatPrice(product.comparePrice)}</p>
-                          )}
-                        </td>
-                        <td className="px-4 py-3 hidden lg:table-cell">
-                          <span className={`text-sm font-medium ${product.stock > 0 ? "text-green-600" : "text-red-500"}`}>
-                            {product.stock > 0 ? `${product.stock} шт.` : "Нет"}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 hidden lg:table-cell">
-                          <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${
-                            product.isActive ? "bg-green-50 text-green-700" : "bg-gray-100 text-gray-500"
-                          }`}>
-                            <span className={`w-1.5 h-1.5 rounded-full ${product.isActive ? "bg-green-500" : "bg-gray-400"}`} />
-                            {product.isActive ? "Активен" : "Скрыт"}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-1.5 justify-end">
-                            <Link href={`/admin/products/${product.id}`}>
-                              <button className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors">
-                                <Pencil className="h-3.5 w-3.5" />
-                              </button>
-                            </Link>
-                            <DeleteProductButton id={product.id} />
-                          </div>
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            )}
-          </div>
+          <ProductsTable products={products as never} storeId={activeStoreId ?? ""} />
 
           {/* Pagination */}
           {totalPages > 1 && (
