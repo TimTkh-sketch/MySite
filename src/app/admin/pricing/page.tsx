@@ -2,22 +2,28 @@ import { db } from "@/lib/db"
 import { PricingDashboard } from "@/components/admin/pricing-dashboard"
 
 export interface PricingUnit {
-  key: string           // `${productId}::${storage ?? ""}::${simGroup}`
+  key: string           // `${productId}::${storage}::${simGroup}::${color}`
   productId: string
   productName: string
   storageName: string | null
-  simGroup: "esim" | "" // "" = regular (dual SIM / SIM+eSIM); "esim" = eSIM-only
-  searchName: string    // passed to matchScore, e.g. "Apple iPhone 17 Pro Max 256 Гб eSIM"
+  simGroup: "esim" | "" // "" = regular (dual / SIM+eSIM); "esim" = eSIM-only
+  colorName: string | null  // English part only, e.g. "Cosmic Orange"
+  searchName: string    // passed to matchScore
   variantIds: string[]
   currentPrice: number
   storeId: string
 }
 
-// "eSIM" (standalone) → "esim" (eSIM-only)
-// "SIM + eSIM", "dual - SIM", anything else → "" (regular)
+// "eSIM" standalone → eSIM-only; anything else (SIM+eSIM, dual) → regular ""
 function normalizeSim(sim: string | null | undefined): "esim" | "" {
   if (!sim) return ""
   return sim.toLowerCase().replace(/[\s\-_]/g, "") === "esim" ? "esim" : ""
+}
+
+// "Cosmic Orange (Оранжевый)" → "Cosmic Orange"; "Silver" → "Silver"
+function extractEnglishColor(colorStr: string): string {
+  const parenIdx = colorStr.indexOf("(")
+  return (parenIdx > 0 ? colorStr.slice(0, parenIdx) : colorStr).trim()
 }
 
 export default async function PricingPage() {
@@ -42,76 +48,82 @@ export default async function PricingPage() {
     }),
   ])
 
-  // Build one pricing unit per product × storage × SIM combination
+  // Build one pricing unit per product × storage × SIM × color combination
   const units: PricingUnit[] = []
 
   for (const product of products) {
-    // key = `${storage ?? ""}::${simGroup}`
+    // group key = `${storage ?? ""}::${simGroup}::${color ?? ""}`
     const groups = new Map<
       string,
-      { storage: string | null; simGroup: "esim" | ""; variantIds: string[]; prices: number[] }
+      {
+        storage: string | null
+        simGroup: "esim" | ""
+        color: string | null
+        variantIds: string[]
+        prices: number[]
+      }
     >()
 
     for (const variant of product.variants) {
       let storage: string | null = null
       let simGroup: "esim" | "" = ""
+      let color: string | null = null
       try {
         const opts = JSON.parse(variant.value) as Record<string, string>
         storage = opts["Память"] ?? opts["Storage"] ?? null
         simGroup = normalizeSim(opts["SIM"] ?? opts["Сим"])
+        const rawColor = opts["Цвет"] ?? opts["Color"] ?? null
+        color = rawColor ? extractEnglishColor(rawColor) : null
       } catch {}
 
-      const key = `${storage ?? ""}::${simGroup}`
-      if (!groups.has(key)) {
-        groups.set(key, { storage, simGroup, variantIds: [], prices: [] })
+      const gKey = `${storage ?? ""}::${simGroup}::${color ?? ""}`
+      if (!groups.has(gKey)) {
+        groups.set(gKey, { storage, simGroup, color, variantIds: [], prices: [] })
       }
-      const g = groups.get(key)!
+      const g = groups.get(gKey)!
       g.variantIds.push(variant.id)
       if (variant.price !== null) g.prices.push(variant.price)
     }
 
-    // If only one group with no storage and no SIM → simple unit
-    const hasVariation = !(groups.size === 1 && groups.has("::"))
-
-    if (!hasVariation) {
-      const g = groups.get("::")!
-      const effectivePrice =
-        g.prices.length > 0 ? Math.min(...g.prices) : product.price
+    // Completely flat product (no storage, no SIM, no color) → single unit
+    const isFlat = groups.size === 1 && groups.has("::::")
+    if (isFlat) {
+      const g = groups.get("::::")!
       units.push({
         key: `${product.id}::::`,
         productId: product.id,
         productName: product.name,
         storageName: null,
         simGroup: "",
+        colorName: null,
         searchName: product.name,
         variantIds: g.variantIds,
-        currentPrice: effectivePrice,
+        currentPrice: g.prices.length > 0 ? Math.min(...g.prices) : product.price,
         storeId: product.storeId,
       })
       continue
     }
 
-    for (const [gKey, g] of groups) {
-      // Skip null-storage groups when storage variants exist
-      if (!g.storage && groups.size > 1 && [...groups.values()].some((x) => x.storage)) continue
-
-      const effectivePrice =
-        g.prices.length > 0 ? Math.min(...g.prices) : product.price
-
-      const simSuffix = g.simGroup === "esim" ? " eSIM" : ""
-      const searchName = g.storage
-        ? `${product.name} ${g.storage}${simSuffix}`
-        : `${product.name}${simSuffix}`
+    for (const [, g] of groups) {
+      const searchName = [
+        product.name,
+        g.storage,
+        g.simGroup === "esim" ? "eSIM" : null,
+        g.color,
+      ]
+        .filter(Boolean)
+        .join(" ")
 
       units.push({
-        key: `${product.id}::${gKey}`,
+        key: `${product.id}::${g.storage ?? ""}::${g.simGroup}::${g.color ?? ""}`,
         productId: product.id,
         productName: product.name,
         storageName: g.storage,
         simGroup: g.simGroup,
+        colorName: g.color,
         searchName,
         variantIds: g.variantIds,
-        currentPrice: effectivePrice,
+        currentPrice: g.prices.length > 0 ? Math.min(...g.prices) : product.price,
         storeId: product.storeId,
       })
     }

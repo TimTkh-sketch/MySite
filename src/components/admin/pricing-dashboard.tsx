@@ -120,6 +120,7 @@ export function PricingDashboard({
         row.unit.productId,
         row.unit.storageName,
         row.unit.simGroup,
+        row.unit.colorName,
         row.suggestedPrice!
       )
       setApplied((prev) => new Set([...prev, row.unit.key]))
@@ -133,6 +134,7 @@ export function PricingDashboard({
         productId: r.unit.productId,
         storageName: r.unit.storageName,
         simGroup: r.unit.simGroup,
+        colorName: r.unit.colorName,
         newPrice: r.suggestedPrice!,
       }))
 
@@ -140,7 +142,7 @@ export function PricingDashboard({
 
     startTransition(async () => {
       await applyBulkStoragePrices(toApply)
-      setApplied((prev) => new Set([...prev, ...toApply.map((i) => i.productId + "::" + (i.storageName ?? "") + "::" + i.simGroup)]))
+      setApplied((prev) => new Set([...prev, ...toApply.map((i) => i.productId + "::" + (i.storageName ?? "") + "::" + i.simGroup + "::" + (i.colorName ?? ""))]))
       setSelected(new Set())
     })
   }
@@ -214,7 +216,7 @@ export function PricingDashboard({
         <div className="flex gap-1.5">
           {(
             [
-              ["all", "Все товары", rows.length],
+              ["all", "Все", rows.length],
               ["needs_change", "Нужно обновить", changesNeeded.length],
               ["no_match", "Не найдено", rows.filter((r) => !r.competitorPrice).length],
             ] as const
@@ -285,7 +287,7 @@ export function PricingDashboard({
                         : "hover:bg-gray-50/60"
                   }`}
                 >
-                  <td className="px-3 py-3">
+                  <td className="px-3 py-2.5">
                     {row.suggestedPrice && !isApplied && (
                       <input
                         type="checkbox"
@@ -297,23 +299,29 @@ export function PricingDashboard({
                     {isApplied && <Check className="h-4 w-4 text-green-500" />}
                   </td>
 
-                  <td className="px-3 py-3">
-                    <p className="font-medium text-gray-900 line-clamp-1">
+                  <td className="px-3 py-2.5">
+                    <p className="font-medium text-gray-900 line-clamp-1 text-sm">
                       {row.unit.productName}
-                      {row.unit.storageName && (
-                        <span className="ml-1.5 text-sm font-normal text-gray-500">
-                          {row.unit.storageName}
-                        </span>
-                      )}
-                      {row.unit.simGroup === "esim" && (
-                        <span className="ml-1.5 text-xs font-medium bg-purple-50 text-purple-600 px-1.5 py-0.5 rounded">
-                          eSIM
-                        </span>
-                      )}
                     </p>
+                    {/* Storage + SIM + Color chips */}
+                    {(row.unit.storageName || row.unit.simGroup || row.unit.colorName) && (
+                      <div className="flex items-center gap-1 mt-0.5 flex-wrap">
+                        {row.unit.storageName && (
+                          <span className="text-xs text-gray-500">{row.unit.storageName}</span>
+                        )}
+                        {row.unit.simGroup === "esim" && (
+                          <span className="text-xs font-medium bg-purple-50 text-purple-600 px-1.5 py-px rounded">
+                            eSIM
+                          </span>
+                        )}
+                        {row.unit.colorName && (
+                          <span className="text-xs text-gray-400">{row.unit.colorName}</span>
+                        )}
+                      </div>
+                    )}
                     {row.competitorName && (
                       <p
-                        className="text-xs text-gray-400 truncate mt-0.5"
+                        className="text-xs text-gray-300 truncate mt-0.5"
                         title={row.competitorName}
                       >
                         ≈ {row.competitorName}
@@ -321,17 +329,17 @@ export function PricingDashboard({
                     )}
                   </td>
 
-                  <td className="px-3 py-3 font-medium text-gray-900 whitespace-nowrap">
+                  <td className="px-3 py-2.5 font-medium text-gray-900 whitespace-nowrap text-sm">
                     {formatPrice(row.unit.currentPrice)}
                   </td>
 
-                  <td className="px-3 py-3">
+                  <td className="px-3 py-2.5">
                     {row.competitorPrice ? (
                       <a
                         href={row.competitorPrice.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 font-medium text-gray-700 hover:text-blue-600 transition-colors whitespace-nowrap"
+                        className="inline-flex items-center gap-1 font-medium text-gray-700 hover:text-blue-600 transition-colors whitespace-nowrap text-sm"
                       >
                         {formatPrice(row.competitorPrice.price)}
                         <ExternalLink className="h-3 w-3 opacity-50" />
@@ -341,10 +349,10 @@ export function PricingDashboard({
                     )}
                   </td>
 
-                  <td className="px-3 py-3 whitespace-nowrap">
+                  <td className="px-3 py-2.5 whitespace-nowrap">
                     {row.suggestedPrice ? (
                       <span
-                        className={`font-semibold ${isApplied ? "text-green-600" : "text-orange-600"}`}
+                        className={`font-semibold text-sm ${isApplied ? "text-green-600" : "text-orange-600"}`}
                       >
                         {formatPrice(row.suggestedPrice)}
                       </span>
@@ -353,11 +361,11 @@ export function PricingDashboard({
                     )}
                   </td>
 
-                  <td className="px-3 py-3">
+                  <td className="px-3 py-2.5">
                     {row.diff !== null && <DiffBadge diff={row.diff} />}
                   </td>
 
-                  <td className="px-3 py-3">
+                  <td className="px-3 py-2.5">
                     {row.suggestedPrice && !isApplied && hasChange && (
                       <button
                         onClick={() => handleApply(row)}
