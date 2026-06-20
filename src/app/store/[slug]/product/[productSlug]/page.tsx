@@ -23,6 +23,7 @@ export default async function ProductPage({
     include: {
       category: { include: { parent: true } },
       variants: { orderBy: { price: "asc" } },
+      colorImages: true,
     },
   })
   if (!product) notFound()
@@ -90,6 +91,9 @@ export default async function ProductPage({
               stock: v.stock,
               image: (v as unknown as { image: string | null }).image ?? null,
             }))}
+            colorImages={Object.fromEntries(
+              product.colorImages.map((ci) => [ci.colorValue, ci.images])
+            )}
             phone={store.settings?.phone}
           />
         </div>

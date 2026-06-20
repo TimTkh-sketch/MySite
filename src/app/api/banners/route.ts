@@ -10,10 +10,12 @@ export async function POST(req: Request) {
   const banner = await db.banner.create({
     data: {
       storeId: body.storeId,
+      type: body.type ?? "hero",
       title: body.title,
       subtitle: body.subtitle,
       image: body.image,
       link: body.link,
+      buttonText: body.buttonText,
       isActive: body.isActive ?? true,
       sortOrder: body.sortOrder ?? 0,
     },

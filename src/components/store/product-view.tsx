@@ -26,20 +26,39 @@ interface Props {
     sku?: string | null
   }
   variants: Variant[]
+  colorImages?: Record<string, string[]>
   phone?: string | null
 }
 
-export function ProductView({ product, variants, phone }: Props) {
+export function ProductView({ product, variants, colorImages = {}, phone }: Props) {
   const [activeImages, setActiveImages] = useState<string[]>(product.images)
 
   function handleVariantSelect(variantId: string) {
     const variant = variants.find((v) => v.id === variantId)
-    if (variant?.image) {
+    if (!variant) return
+
+    // Extract color value from variant JSON
+    let colorValue: string | null = null
+    try {
+      const opts: Record<string, string> = JSON.parse(variant.value)
+      colorValue = opts["Цвет"] ?? null
+    } catch {}
+
+    // 1. Use color-level images if assigned
+    if (colorValue && colorImages[colorValue]?.length) {
+      setActiveImages(colorImages[colorValue])
+      return
+    }
+
+    // 2. Fallback: per-variant image
+    if (variant.image) {
       const rest = product.images.filter((img) => img !== variant.image)
       setActiveImages([variant.image, ...rest])
-    } else {
-      setActiveImages(product.images)
+      return
     }
+
+    // 3. Default: all product images
+    setActiveImages(product.images)
   }
 
   return (

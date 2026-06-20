@@ -28,19 +28,17 @@ export default async function ProductsPage({
     select: { id: true, name: true, parentId: true },
   })
 
-  // Category tree for sidebar
+  // Category tree for sidebar — show all categories (including hidden) so they can be managed
   const rootCategories = await db.category.findMany({
-    where: { storeId: activeStoreId, parentId: null, isActive: true },
+    where: { storeId: activeStoreId, parentId: null },
     orderBy: { sortOrder: "asc" },
     include: {
       _count: { select: { products: true } },
       children: {
-        where: { isActive: true },
         orderBy: { sortOrder: "asc" },
         include: {
           _count: { select: { products: true } },
           children: {
-            where: { isActive: true },
             orderBy: { sortOrder: "asc" },
             include: { _count: { select: { products: true } } },
           },
@@ -61,7 +59,10 @@ export default async function ProductsPage({
       include: {
         category: { select: { name: true } },
         store: { select: { name: true } },
-        variants: { select: { id: true, price: true, name: true, stock: true, sku: true }, take: 50 },
+        variants: {
+          select: { id: true, price: true, name: true, stock: true, sku: true, image: true, value: true },
+          take: 50,
+        },
       },
       orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
       skip: (page - 1) * pageSize,
@@ -71,6 +72,22 @@ export default async function ProductsPage({
   ])
 
   const totalPages = Math.ceil(total / pageSize)
+
+  // Fetch color images for products on this page
+  const productIds = products.map((p) => p.id)
+  const colorImageRecords = await db.productColorImage.findMany({
+    where: { productId: { in: productIds } },
+    select: { productId: true, colorValue: true, images: true },
+  })
+  const colorImageMap: Record<string, Record<string, string[]>> = {}
+  for (const r of colorImageRecords) {
+    if (!colorImageMap[r.productId]) colorImageMap[r.productId] = {}
+    colorImageMap[r.productId][r.colorValue] = r.images
+  }
+  const productsWithColorImages = products.map((p) => ({
+    ...p,
+    colorImages: colorImageMap[p.id] ?? {},
+  }))
   const selectedCategory = categoryId
     ? await db.category.findUnique({ where: { id: categoryId }, select: { name: true } })
     : null
@@ -136,7 +153,7 @@ export default async function ProductsPage({
           {/* Table — key forces remount on filter change so useState(initialProducts) resets */}
           <ProductsTable
             key={`${activeStoreId ?? ""}-${categoryId ?? ""}-${query ?? ""}-${page}`}
-            products={products as never}
+            products={productsWithColorImages as never}
             storeId={activeStoreId ?? ""}
             allCategories={allCategories}
           />

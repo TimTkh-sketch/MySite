@@ -7,7 +7,13 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
   const { id } = await params
 
   const [product, stores, categories] = await Promise.all([
-    db.product.findUnique({ where: { id }, include: { variants: { orderBy: { price: "asc" } } } }),
+    db.product.findUnique({
+      where: { id },
+      include: {
+        variants: { orderBy: { price: "asc" } },
+        colorImages: true,
+      },
+    }),
     db.store.findMany({ select: { id: true, name: true } }),
     db.category.findMany({ select: { id: true, name: true, storeId: true } }),
   ])
@@ -31,6 +37,9 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
         productId={product.id}
         productImages={product.images}
         basePrice={product.price}
+        initialColorImages={Object.fromEntries(
+          product.colorImages.map((ci) => [ci.colorValue, ci.images])
+        )}
       />
     </div>
   )

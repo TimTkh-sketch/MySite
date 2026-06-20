@@ -35,6 +35,9 @@ export default async function BannersPage() {
               <div className="relative h-40 bg-gray-100">
                 <Image src={banner.image} alt={banner.title} fill className="object-cover" />
                 <div className="absolute top-2 right-2 flex gap-1">
+                  <Badge variant={(banner as { type: string }).type === "mini" ? "secondary" : "default"}>
+                    {(banner as { type: string }).type === "mini" ? "Мини" : "Слайдер"}
+                  </Badge>
                   <Badge variant={banner.isActive ? "success" : "outline"}>
                     {banner.isActive ? "Активен" : "Скрыт"}
                   </Badge>

@@ -5,6 +5,7 @@ import { notFound } from "next/navigation"
 import { db } from "@/lib/db"
 import { ProductCard } from "@/components/store/product-card"
 import { BannerCarousel } from "@/components/store/banner-carousel"
+import { MiniBanners } from "@/components/store/mini-banners"
 import { formatPrice } from "@/lib/utils"
 
 export default async function StorePage({ params }: { params: Promise<{ slug: string }> }) {
@@ -13,7 +14,7 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
   const store = await db.store.findUnique({
     where: { slug, isActive: true },
     include: {
-      banners: { where: { isActive: true }, orderBy: { sortOrder: "asc" } },
+      banners: { where: { isActive: true }, orderBy: { sortOrder: "asc" }, select: { id: true, type: true, title: true, subtitle: true, image: true, link: true, buttonText: true } },
       categories: {
         where: { isActive: true, parentId: null },
         orderBy: { sortOrder: "asc" },
@@ -39,12 +40,19 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
     take: 8,
   })
 
+  const heroBanners = store.banners.filter((b) => (b as { type: string }).type !== "mini")
+  const miniBanners = store.banners.filter((b) => (b as { type: string }).type === "mini")
+
   const base = `/store/${slug}`
 
   return (
     <div className="bg-gray-50 min-h-screen">
-      {/* Banner carousel */}
-      {store.banners.length > 0 && <BannerCarousel banners={store.banners} />}
+      {/* Hero banner carousel */}
+      {heroBanners.length > 0 && (
+        <div className="max-w-7xl mx-auto px-4 pt-4">
+          <BannerCarousel banners={heroBanners as never} />
+        </div>
+      )}
 
       <div className="max-w-7xl mx-auto px-4 py-8 space-y-10">
 
@@ -87,6 +95,11 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
               ))}
             </div>
           </section>
+        )}
+
+        {/* Mini banners */}
+        {miniBanners.length > 0 && (
+          <MiniBanners banners={miniBanners as never} />
         )}
 
         {/* Featured products */}

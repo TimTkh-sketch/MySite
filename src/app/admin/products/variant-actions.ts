@@ -143,3 +143,13 @@ export async function bulkUpdateVariantPrices(productId: string, updates: { id: 
   await Promise.all(updates.map(({ id, price }) => db.productVariant.update({ where: { id }, data: { price } })))
   revalidatePath(`/admin/products/${productId}`)
 }
+
+// Set images for a color value — affects ALL variants of this color
+export async function setColorImages(productId: string, colorValue: string, images: string[]) {
+  await db.productColorImage.upsert({
+    where: { productId_colorValue: { productId, colorValue } },
+    create: { productId, colorValue, images },
+    update: { images },
+  })
+  revalidatePath(`/admin/products/${productId}`)
+}

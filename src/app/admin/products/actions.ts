@@ -55,3 +55,18 @@ export async function updateVariantPrice(id: string, price: number) {
   await db.productVariant.update({ where: { id }, data: { price } })
   revalidatePath("/admin/products")
 }
+
+export async function bulkToggleActive(ids: string[], isActive: boolean) {
+  await db.product.updateMany({ where: { id: { in: ids } }, data: { isActive } })
+  revalidatePath("/admin/products")
+}
+
+export async function bulkMoveToCategory(ids: string[], categoryId: string | null) {
+  await db.product.updateMany({ where: { id: { in: ids } }, data: { categoryId } })
+  revalidatePath("/admin/products")
+}
+
+export async function bulkDelete(ids: string[]) {
+  await db.product.deleteMany({ where: { id: { in: ids } } })
+  revalidatePath("/admin/products")
+}

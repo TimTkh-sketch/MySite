@@ -13,10 +13,12 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     where: { id },
     data: {
       storeId: body.storeId,
+      type: body.type ?? "hero",
       title: body.title,
       subtitle: body.subtitle,
       image: body.image,
       link: body.link,
+      buttonText: body.buttonText,
       isActive: body.isActive ?? true,
       sortOrder: body.sortOrder ?? 0,
     },

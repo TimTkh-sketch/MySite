@@ -3,39 +3,32 @@
 import { useState, useTransition, useRef, useEffect } from "react"
 import Image from "next/image"
 import Link from "next/link"
-import { ChevronDown, ChevronRight, Pencil, GripVertical, MoreHorizontal, Eye, EyeOff, FolderInput, ChevronsUp, ChevronsDown } from "lucide-react"
+import { createPortal } from "react-dom"
+import {
+  ChevronDown, ChevronRight, Pencil, GripVertical,
+  Eye, EyeOff, FolderInput, Trash2, X,
+} from "lucide-react"
 import { formatPrice } from "@/lib/utils"
 import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  type DragEndEvent,
+  DndContext, closestCenter, KeyboardSensor, PointerSensor,
+  useSensor, useSensors, type DragEndEvent,
 } from "@dnd-kit/core"
 import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  useSortable,
-  verticalListSortingStrategy,
+  arrayMove, SortableContext, sortableKeyboardCoordinates,
+  useSortable, verticalListSortingStrategy,
 } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
 import {
-  reorderProducts,
-  updateProductPrice,
-  updateVariantPrice,
-  toggleProductActive,
-  moveProductToCategory,
-  moveProductToStart,
-  moveProductToEnd,
+  reorderProducts, updateProductPrice, updateVariantPrice,
+  toggleProductActive, moveProductToCategory,
+  bulkToggleActive, bulkMoveToCategory, bulkDelete,
 } from "@/app/admin/products/actions"
 import { DeleteProductButton } from "@/components/admin/delete-product-button"
 
 interface Variant {
   id: string
   name: string
+  value: string
   price: number | null
   stock: number
   sku: string | null
@@ -54,6 +47,7 @@ interface Product {
   storeId: string
   category: { name: string } | null
   variants: Variant[]
+  colorImages: Record<string, string[]>
 }
 
 interface Category {
@@ -72,11 +66,7 @@ function PriceCell({ value, onSave }: { value: number; onSave: (v: number) => Pr
   function commit() {
     const raw = parseFloat(ref.current?.value ?? "")
     if (isNaN(raw) || raw === display) { setEditing(false); return }
-    startTransition(async () => {
-      await onSave(raw)
-      setDisplay(raw)
-      setEditing(false)
-    })
+    startTransition(async () => { await onSave(raw); setDisplay(raw); setEditing(false) })
   }
 
   if (editing) {
@@ -113,13 +103,13 @@ function CategoryPicker({ categories, onSelect, onClose }: {
   const roots = categories.filter((c) => !c.parentId)
   const children = (parentId: string) => categories.filter((c) => c.parentId === parentId)
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 bg-black/30 z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-xl w-80 max-h-[70vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
-        <div className="px-4 py-3 border-b border-gray-100">
+      <div className="bg-white rounded-2xl shadow-xl w-80 max-h-[70vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
+        <div className="px-4 py-3 border-b border-gray-100 shrink-0">
           <p className="font-semibold text-gray-900 text-sm">Перенести в категорию</p>
         </div>
-        <div className="overflow-y-auto max-h-[50vh]">
+        <div className="overflow-y-auto flex-1">
           {roots.map((root) => (
             <div key={root.id}>
               <button
@@ -140,101 +130,98 @@ function CategoryPicker({ categories, onSelect, onClose }: {
             </div>
           ))}
         </div>
-        <div className="px-4 py-3 border-t border-gray-100">
+        <div className="px-4 py-3 border-t border-gray-100 shrink-0">
           <button onClick={onClose} className="text-sm text-gray-500 hover:text-gray-700">Отмена</button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
 
-// ── Actions dropdown ──────────────────────────────────────────────────────────
-function ActionsDropdown({ product, allCategories, onActiveChange }: {
-  product: Product
+// ── Bulk toolbar ──────────────────────────────────────────────────────────────
+function BulkToolbar({
+  selectedIds,
+  allCategories,
+  onHide,
+  onShow,
+  onDelete,
+  onMoveToCategory,
+  onClear,
+}: {
+  selectedIds: Set<string>
   allCategories: Category[]
-  onActiveChange: (isActive: boolean) => void
+  onHide: () => void
+  onShow: () => void
+  onDelete: () => void
+  onMoveToCategory: (id: string | null) => void
+  onClear: () => void
 }) {
-  const [open, setOpen] = useState(false)
   const [showCategoryPicker, setShowCategoryPicker] = useState(false)
-  const [, startTransition] = useTransition()
-  const ref = useRef<HTMLDivElement>(null)
+  const count = selectedIds.size
 
-  useEffect(() => {
-    function handle(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
-    }
-    if (open) document.addEventListener("mousedown", handle)
-    return () => document.removeEventListener("mousedown", handle)
-  }, [open])
-
-  function action(fn: () => Promise<void>) {
-    setOpen(false)
-    startTransition(fn)
-  }
+  if (count === 0) return null
 
   return (
-    <div ref={ref} className="relative">
+    <div className="flex items-center gap-3 px-4 py-2.5 bg-blue-50 border-b border-blue-100">
+      {/* Count */}
+      <span className="text-sm font-medium text-blue-700 shrink-0">
+        Выбрано: {count} {count === 1 ? "товар" : count < 5 ? "товара" : "товаров"}
+      </span>
+
+      <div className="flex items-center gap-1 flex-wrap">
+        {/* Show */}
+        <button
+          onClick={onShow}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 transition-colors"
+          title="Показать выбранные"
+        >
+          <Eye className="h-3.5 w-3.5 text-green-500" />
+          Показать
+        </button>
+
+        {/* Hide */}
+        <button
+          onClick={onHide}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 transition-colors"
+          title="Скрыть выбранные"
+        >
+          <EyeOff className="h-3.5 w-3.5 text-gray-400" />
+          Скрыть
+        </button>
+
+        {/* Move to category */}
+        <button
+          onClick={() => setShowCategoryPicker(true)}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 transition-colors"
+        >
+          <FolderInput className="h-3.5 w-3.5 text-blue-500" />
+          Перенести
+        </button>
+
+        {/* Delete */}
+        <button
+          onClick={onDelete}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-red-100 bg-white hover:bg-red-50 text-red-600 transition-colors"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+          Удалить
+        </button>
+      </div>
+
+      {/* Clear selection */}
       <button
-        onClick={() => setOpen((v) => !v)}
-        className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
-        title="Действия"
+        onClick={onClear}
+        className="ml-auto p-1 rounded text-blue-400 hover:text-blue-700 transition-colors shrink-0"
+        title="Снять выделение"
       >
-        <MoreHorizontal className="h-3.5 w-3.5" />
+        <X className="h-4 w-4" />
       </button>
-
-      {open && (
-        <div className="absolute right-0 top-8 z-40 w-52 bg-white rounded-xl shadow-lg border border-gray-100 py-1 text-sm">
-          {/* Hide / Show */}
-          <button
-            onClick={() => action(async () => {
-              await toggleProductActive(product.id, !product.isActive)
-              onActiveChange(!product.isActive)
-            })}
-            className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-gray-50 text-left transition-colors"
-          >
-            {product.isActive
-              ? <><EyeOff className="h-4 w-4 text-gray-400" /><span>Скрыть на сайте</span></>
-              : <><Eye className="h-4 w-4 text-gray-400" /><span>Показать на сайте</span></>
-            }
-          </button>
-
-          <div className="my-1 border-t border-gray-50" />
-
-          {/* Move in category */}
-          <button
-            onClick={() => { setOpen(false); action(async () => { await moveProductToStart(product.id, product.categoryId, product.storeId) }) }}
-            className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-gray-50 text-left transition-colors"
-          >
-            <ChevronsUp className="h-4 w-4 text-gray-400" />
-            <span>В начало категории</span>
-          </button>
-          <button
-            onClick={() => action(async () => { await moveProductToEnd(product.id, product.categoryId, product.storeId) })}
-            className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-gray-50 text-left transition-colors"
-          >
-            <ChevronsDown className="h-4 w-4 text-gray-400" />
-            <span>В конец категории</span>
-          </button>
-
-          <div className="my-1 border-t border-gray-50" />
-
-          {/* Move to another category */}
-          <button
-            onClick={() => { setOpen(false); setShowCategoryPicker(true) }}
-            className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-gray-50 text-left transition-colors"
-          >
-            <FolderInput className="h-4 w-4 text-gray-400" />
-            <span>Перенести в категорию</span>
-          </button>
-        </div>
-      )}
 
       {showCategoryPicker && (
         <CategoryPicker
           categories={allCategories}
-          onSelect={(id) => {
-            startTransition(async () => { await moveProductToCategory(product.id, id) })
-          }}
+          onSelect={onMoveToCategory}
           onClose={() => setShowCategoryPicker(false)}
         />
       )}
@@ -243,16 +230,26 @@ function ActionsDropdown({ product, allCategories, onActiveChange }: {
 }
 
 // ── Sortable row ──────────────────────────────────────────────────────────────
-function SortableProductRow({ product, allCategories }: { product: Product; allCategories: Category[] }) {
+function SortableProductRow({
+  product,
+  allCategories,
+  isSelected,
+  onSelect,
+}: {
+  product: Product
+  allCategories: Category[]
+  isSelected: boolean
+  onSelect: (id: string, checked: boolean) => void
+}) {
   const [expanded, setExpanded] = useState(false)
   const [isActive, setIsActive] = useState(product.isActive)
   const [mounted, setMounted] = useState(false)
+  const [, startTransition] = useTransition()
 
   useEffect(() => setMounted(true), [])
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: product.id })
 
-  // Only apply DnD styles after client mount to avoid SSR/hydration mismatch
   const style = mounted ? {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -270,9 +267,24 @@ function SortableProductRow({ product, allCategories }: { product: Product; allC
 
   return (
     <>
-      <tr ref={setNodeRef} style={style} className={`hover:bg-gray-50/80 transition-colors group ${!isActive ? "opacity-60" : ""}`}>
-        {/* Drag handle — aria attrs added only after mount to avoid hydration mismatch */}
-        <td className="px-2 py-3 w-8">
+      <tr
+        ref={setNodeRef}
+        style={style}
+        className={`hover:bg-gray-50/80 transition-colors group ${!isActive ? "opacity-60" : ""} ${isSelected ? "bg-blue-50/60" : ""}`}
+      >
+        {/* Checkbox */}
+        <td className="px-3 py-3 w-10">
+          <input
+            type="checkbox"
+            checked={isSelected}
+            onChange={(e) => onSelect(product.id, e.target.checked)}
+            className="w-4 h-4 rounded border-gray-300 text-blue-600 cursor-pointer accent-blue-600"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </td>
+
+        {/* Drag handle */}
+        <td className="px-1 py-3 w-8">
           <button
             {...(mounted ? attributes : {})}
             {...(mounted ? listeners : {})}
@@ -282,8 +294,8 @@ function SortableProductRow({ product, allCategories }: { product: Product; allC
           </button>
         </td>
 
-        {/* Product name + image */}
-        <td className="px-4 py-3">
+        {/* Photo + Name */}
+        <td className="px-3 py-3">
           <div className="flex items-center gap-3">
             <div className="shrink-0 w-11 h-11 rounded-lg overflow-hidden bg-gray-100 border border-gray-100">
               {product.images[0] ? (
@@ -293,7 +305,10 @@ function SortableProductRow({ product, allCategories }: { product: Product; allC
               )}
             </div>
             <div className="min-w-0">
-              <Link href={`/admin/products/${product.id}`} className="font-medium text-gray-900 hover:text-orange-600 transition-colors line-clamp-1">
+              <Link
+                href={`/admin/products/${product.id}`}
+                className="font-medium text-gray-900 hover:text-orange-600 transition-colors line-clamp-1"
+              >
                 {product.name}
               </Link>
               <div className="flex items-center gap-2 mt-0.5">
@@ -340,39 +355,47 @@ function SortableProductRow({ product, allCategories }: { product: Product; allC
 
         {/* Status */}
         <td className="px-4 py-3 hidden lg:table-cell">
-          <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${
-            isActive ? "bg-green-50 text-green-700" : "bg-gray-100 text-gray-500"
-          }`}>
+          <button
+            onClick={() => startTransition(async () => {
+              await toggleProductActive(product.id, !isActive)
+              setIsActive((v) => !v)
+            })}
+            className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full transition-colors cursor-pointer ${
+              isActive ? "bg-green-50 text-green-700 hover:bg-green-100" : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+            }`}
+            title={isActive ? "Нажмите чтобы скрыть" : "Нажмите чтобы показать"}
+          >
             <span className={`w-1.5 h-1.5 rounded-full ${isActive ? "bg-green-500" : "bg-gray-400"}`} />
             {isActive ? "Активен" : "Скрыт"}
-          </span>
+          </button>
         </td>
 
         {/* Actions */}
-        <td className="px-4 py-3 w-24">
+        <td className="px-3 py-3 w-20">
           <div className="flex items-center gap-1 justify-end">
             <Link href={`/admin/products/${product.id}`}>
-              <button className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors">
+              <button className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors" title="Редактировать">
                 <Pencil className="h-3.5 w-3.5" />
               </button>
             </Link>
             <DeleteProductButton id={product.id} />
-            <ActionsDropdown
-              product={{ ...product, isActive }}
-              allCategories={allCategories}
-              onActiveChange={setIsActive}
-            />
           </div>
         </td>
       </tr>
 
       {/* Expanded variants */}
       {expanded && product.variants.map((variant) => {
-        const variantImg = variant.image || product.images[0]
+        let colorValue: string | null = null
+        try {
+          const opts = JSON.parse(variant.value) as Record<string, string>
+          colorValue = opts["Цвет"] ?? null
+        } catch {}
+        const colorImgs = colorValue ? (product.colorImages[colorValue] ?? []) : []
+        const variantImg = colorImgs[0] ?? variant.image ?? product.images[0]
         return (
           <tr key={variant.id} className="bg-blue-50/40 border-l-2 border-l-blue-200">
-            <td className="px-2 py-2" />
-            <td className="px-4 py-2">
+            <td className="px-3 py-2" colSpan={2} />
+            <td className="px-3 py-2">
               <div className="flex items-center gap-3 pl-6">
                 <div className="shrink-0 w-8 h-8 rounded-md overflow-hidden bg-white border border-gray-200">
                   {variantImg ? (
@@ -388,10 +411,7 @@ function SortableProductRow({ product, allCategories }: { product: Product; allC
               </div>
             </td>
             <td className="px-4 py-2 hidden md:table-cell">
-              <PriceCell
-                value={variant.price ?? product.price}
-                onSave={(v) => updateVariantPrice(variant.id, v)}
-              />
+              <PriceCell value={variant.price ?? product.price} onSave={(v) => updateVariantPrice(variant.id, v)} />
             </td>
             <td className="px-4 py-2 hidden lg:table-cell">
               <span className={`text-sm ${variant.stock > 0 ? "text-green-600" : "text-red-400"}`}>
@@ -417,12 +437,33 @@ export function ProductsTable({
   allCategories: Category[]
 }) {
   const [products, setProducts] = useState(initialProducts)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [, startTransition] = useTransition()
+  const masterCheckboxRef = useRef<HTMLInputElement>(null)
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   )
+
+  // Master checkbox indeterminate state
+  useEffect(() => {
+    if (!masterCheckboxRef.current) return
+    masterCheckboxRef.current.indeterminate = selectedIds.size > 0 && selectedIds.size < products.length
+  }, [selectedIds.size, products.length])
+
+  function handleSelect(id: string, checked: boolean) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (checked) next.add(id)
+      else next.delete(id)
+      return next
+    })
+  }
+
+  function handleSelectAll(checked: boolean) {
+    setSelectedIds(checked ? new Set(products.map((p) => p.id)) : new Set())
+  }
 
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event
@@ -434,8 +475,54 @@ export function ProductsTable({
     startTransition(() => reorderProducts(newOrder.map((p) => p.id)))
   }
 
+  // Bulk actions
+  function handleBulkShow() {
+    const ids = [...selectedIds]
+    setProducts((prev) => prev.map((p) => ids.includes(p.id) ? { ...p, isActive: true } : p))
+    setSelectedIds(new Set())
+    startTransition(() => bulkToggleActive(ids, true))
+  }
+
+  function handleBulkHide() {
+    const ids = [...selectedIds]
+    setProducts((prev) => prev.map((p) => ids.includes(p.id) ? { ...p, isActive: false } : p))
+    setSelectedIds(new Set())
+    startTransition(() => bulkToggleActive(ids, false))
+  }
+
+  function handleBulkDelete() {
+    const ids = [...selectedIds]
+    if (!confirm(`Удалить ${ids.length} ${ids.length === 1 ? "товар" : "товаров"}? Это действие необратимо.`)) return
+    setProducts((prev) => prev.filter((p) => !ids.includes(p.id)))
+    setSelectedIds(new Set())
+    startTransition(() => bulkDelete(ids))
+  }
+
+  function handleBulkMoveToCategory(categoryId: string | null) {
+    const ids = [...selectedIds]
+    const cat = allCategories.find((c) => c.id === categoryId)
+    setProducts((prev) => prev.map((p) =>
+      ids.includes(p.id) ? { ...p, categoryId, category: cat ? { name: cat.name } : null } : p
+    ))
+    setSelectedIds(new Set())
+    startTransition(() => bulkMoveToCategory(ids, categoryId))
+  }
+
+  const allSelected = products.length > 0 && selectedIds.size === products.length
+
   return (
     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      {/* Bulk action toolbar */}
+      <BulkToolbar
+        selectedIds={selectedIds}
+        allCategories={allCategories}
+        onShow={handleBulkShow}
+        onHide={handleBulkHide}
+        onDelete={handleBulkDelete}
+        onMoveToCategory={handleBulkMoveToCategory}
+        onClear={() => setSelectedIds(new Set())}
+      />
+
       {products.length === 0 ? (
         <div className="p-16 text-center">
           <p className="text-gray-400">Товаров не найдено</p>
@@ -446,17 +533,33 @@ export function ProductsTable({
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-200 bg-gray-50 text-left text-xs font-medium uppercase tracking-wide text-gray-400">
-                  <th className="px-2 py-3 w-8" />
-                  <th className="px-4 py-3">Товар</th>
+                  {/* Master checkbox */}
+                  <th className="px-3 py-3 w-10">
+                    <input
+                      ref={masterCheckboxRef}
+                      type="checkbox"
+                      checked={allSelected}
+                      onChange={(e) => handleSelectAll(e.target.checked)}
+                      className="w-4 h-4 rounded border-gray-300 text-blue-600 cursor-pointer accent-blue-600"
+                    />
+                  </th>
+                  <th className="px-1 py-3 w-8" />
+                  <th className="px-3 py-3">Товар</th>
                   <th className="px-4 py-3 hidden md:table-cell">Цена</th>
                   <th className="px-4 py-3 hidden lg:table-cell">Остаток</th>
                   <th className="px-4 py-3 hidden lg:table-cell">Статус</th>
-                  <th className="px-4 py-3 w-24" />
+                  <th className="px-3 py-3 w-20" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {products.map((product) => (
-                  <SortableProductRow key={product.id} product={product} allCategories={allCategories} />
+                  <SortableProductRow
+                    key={product.id}
+                    product={product}
+                    allCategories={allCategories}
+                    isSelected={selectedIds.has(product.id)}
+                    onSelect={handleSelect}
+                  />
                 ))}
               </tbody>
             </table>

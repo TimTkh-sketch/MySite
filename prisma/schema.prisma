@@ -89,12 +89,26 @@ model Store {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  users      StoreUser[]
-  categories Category[]
-  products   Product[]
-  orders     Order[]
-  settings   StoreSettings?
-  banners    Banner[]
+  users           StoreUser[]
+  categories      Category[]
+  products        Product[]
+  orders          Order[]
+  settings        StoreSettings?
+  banners         Banner[]
+  propertyValues  PropertyValue[]
+}
+
+model PropertyValue {
+  id        String   @id @default(cuid())
+  storeId   String
+  property  String
+  value     String
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  store Store @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  @@unique([storeId, property, value])
 }
 
 model StoreSettings {
@@ -166,12 +180,24 @@ model Product {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  store      Store            @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  category   Category?        @relation(fields: [categoryId], references: [id])
-  orderItems OrderItem[]
-  variants   ProductVariant[]
+  store       Store              @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  category    Category?          @relation(fields: [categoryId], references: [id])
+  orderItems  OrderItem[]
+  variants    ProductVariant[]
+  colorImages ProductColorImage[]
 
   @@unique([storeId, slug])
+}
+
+model ProductColorImage {
+  id         String   @id @default(cuid())
+  productId  String
+  colorValue String
+  images     String[] @default([])
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, colorValue])
 }
 
 model ProductVariant {
@@ -189,15 +215,17 @@ model ProductVariant {
 }
 
 model Banner {
-  id        String   @id @default(cuid())
-  storeId   String
-  title     String
-  subtitle  String?
-  image     String
-  link      String?
-  isActive  Boolean  @default(true)
-  sortOrder Int      @default(0)
-  createdAt DateTime @default(now())
+  id         String   @id @default(cuid())
+  storeId    String
+  type       String   @default("hero")
+  title      String
+  subtitle   String?
+  image      String
+  link       String?
+  buttonText String?
+  isActive   Boolean  @default(true)
+  sortOrder  Int      @default(0)
+  createdAt  DateTime @default(now())
 
   store Store @relation(fields: [storeId], references: [id], onDelete: Cascade)
 }

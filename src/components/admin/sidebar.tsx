@@ -12,6 +12,7 @@ import {
   LogOut,
   Image,
   ExternalLink,
+  Layers,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { signOut } from "next-auth/react"
@@ -21,6 +22,7 @@ const navItems = [
   { href: "/admin/stores", label: "Магазины", icon: Store },
   { href: "/admin/products", label: "Товары", icon: Package },
   { href: "/admin/categories", label: "Категории", icon: FolderOpen },
+  { href: "/admin/properties", label: "Свойства", icon: Layers },
   { href: "/admin/orders", label: "Заказы", icon: ShoppingCart },
   { href: "/admin/banners", label: "Баннеры", icon: Image },
   { href: "/admin/settings", label: "Настройки", icon: Settings },
