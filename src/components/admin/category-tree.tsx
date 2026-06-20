@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import Link from "next/link"
 import { Plus, Minus } from "lucide-react"
 
@@ -19,46 +19,56 @@ interface Props {
   baseUrl: string
 }
 
+function isAncestorOf(cat: Cat, id?: string): boolean {
+  if (!id) return false
+  return cat.children.some(
+    (c) => c.id === id || isAncestorOf(c, id)
+  )
+}
+
 function TreeNode({ cat, selectedId, baseUrl, depth }: {
   cat: Cat
   selectedId?: string
   baseUrl: string
   depth: number
 }) {
-  const shouldBeOpen = (id?: string) =>
-    cat.id === id ||
-    cat.children.some((c) => c.id === id || c.children?.some((cc) => cc.id === id))
-
-  const [open, setOpen] = useState(() => shouldBeOpen(selectedId))
   const hasChildren = cat.children.length > 0
   const isSelected = cat.id === selectedId
+  const isAncestor = isAncestorOf(cat, selectedId)
 
-  // При клиенской навигации selectedId меняется через props, но useState не пересчитывается
-  useEffect(() => {
-    if (shouldBeOpen(selectedId)) setOpen(true)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedId])
+  // Naturally open if selected or ancestor of selected
+  const naturalOpen = isSelected || isAncestor
+
+  // User can manually toggle (override natural state)
+  const [manualOpen, setManualOpen] = useState<boolean | null>(null)
+
+  const open = manualOpen !== null ? manualOpen : naturalOpen
+
+  function handleToggle(e: React.MouseEvent) {
+    e.preventDefault()
+    e.stopPropagation()
+    setManualOpen((v) => (v !== null ? !v : !naturalOpen))
+  }
 
   return (
     <div>
       <div
-        className={`flex items-center gap-1 group cursor-pointer rounded-md transition-colors ${
+        className={`flex items-center gap-1 rounded-md transition-colors ${
           isSelected ? "bg-orange-50" : "hover:bg-gray-50"
         }`}
         style={{ paddingLeft: `${depth * 16 + 8}px`, paddingRight: "8px" }}
       >
         {/* Expand/collapse button */}
         <button
-          onClick={(e) => { e.preventDefault(); setOpen((o) => !o) }}
+          onClick={handleToggle}
           className={`shrink-0 w-4 h-4 flex items-center justify-center rounded transition-colors ${
             hasChildren ? "text-gray-400 hover:text-gray-700" : "opacity-0 pointer-events-none"
           }`}
         >
-          {hasChildren && (open ? (
-            <Minus className="h-3 w-3" />
-          ) : (
-            <Plus className="h-3 w-3" />
-          ))}
+          {hasChildren && (open
+            ? <Minus className="h-3 w-3" />
+            : <Plus className="h-3 w-3" />
+          )}
         </button>
 
         {/* Category link */}
@@ -67,10 +77,6 @@ function TreeNode({ cat, selectedId, baseUrl, depth }: {
           className={`flex-1 flex items-center justify-between py-1.5 text-sm min-w-0 ${
             isSelected ? "text-orange-600 font-semibold" : "text-gray-700"
           }`}
-          onClick={(e) => {
-            // If has children, also toggle open
-            if (hasChildren) setOpen(true)
-          }}
         >
           <span className="truncate">{cat.name}</span>
           {cat._count.products > 0 && (
@@ -99,7 +105,10 @@ function TreeNode({ cat, selectedId, baseUrl, depth }: {
 }
 
 export function CategoryTree({ categories, selectedId, baseUrl }: Props) {
-  const totalProducts = categories.reduce((s, c) => s + c._count.products + c.children.reduce((ss, cc) => ss + cc._count.products, 0), 0)
+  const totalProducts = categories.reduce(
+    (s, c) => s + c._count.products + c.children.reduce((ss, cc) => ss + cc._count.products, 0),
+    0
+  )
 
   return (
     <div className="w-56 shrink-0 bg-white rounded-xl border border-gray-200 overflow-hidden self-start sticky top-4">
@@ -108,7 +117,6 @@ export function CategoryTree({ categories, selectedId, baseUrl }: Props) {
       </div>
 
       <div className="py-1.5 overflow-y-auto max-h-[calc(100vh-200px)]">
-        {/* "All" link */}
         <Link
           href={baseUrl}
           className={`flex items-center justify-between px-3 py-1.5 text-sm rounded-md mx-1 transition-colors ${

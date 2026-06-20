@@ -112,6 +112,7 @@ export default async function ProductsPage({
 
         {/* Category tree sidebar */}
         <CategoryTree
+          key={categoryId ?? "all"}
           categories={rootCategories as never}
           selectedId={categoryId}
           baseUrl={filterUrl || baseUrl}
