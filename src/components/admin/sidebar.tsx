@@ -14,6 +14,7 @@ import {
   ExternalLink,
   Layers,
   TrendingDown,
+  Home,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { signOut } from "next-auth/react"
@@ -27,6 +28,7 @@ const navItems = [
   { href: "/admin/orders", label: "Заказы", icon: ShoppingCart },
   { href: "/admin/banners", label: "Баннеры", icon: Image },
   { href: "/admin/pricing", label: "Цены", icon: TrendingDown },
+  { href: "/admin/homepage", label: "Главная", icon: Home },
   { href: "/admin/settings", label: "Настройки", icon: Settings },
 ]
 
