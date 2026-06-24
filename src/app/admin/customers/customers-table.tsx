@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react"
 import Link from "next/link"
 import { Search, Users, ChevronDown, ChevronUp, X } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { BmSyncButton } from "./bm-sync-button"
 
 interface Customer {
   id: string; firstName: string; lastName: string; email: string; phone: string | null
@@ -142,7 +143,9 @@ export function CustomersTable() {
             )}
           </button>
 
-          <div className="flex items-center gap-1 text-xs text-gray-400 ml-auto">
+          <BmSyncButton />
+
+          <div className="flex items-center gap-1 text-xs text-gray-400">
             <Users className="h-3.5 w-3.5" />
             {total} клиентов
           </div>
