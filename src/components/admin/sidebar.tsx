@@ -23,21 +23,24 @@ import {
 import { cn } from "@/lib/utils"
 import { signOut } from "next-auth/react"
 
+const pinnedItems = [
+  { href: "/admin/crm",       label: "CRM",      icon: BarChart2,    bg: "bg-orange-50",  text: "text-orange-500" },
+  { href: "/admin/customers", label: "Клиенты",  icon: Users,        bg: "bg-blue-50",    text: "text-blue-500"   },
+  { href: "/admin/chat",      label: "Чат",      icon: MessageCircle, bg: "bg-green-50",  text: "text-green-500"  },
+]
+
 const navItems = [
-  { href: "/admin", label: "Дашборд", icon: LayoutDashboard },
-  { href: "/admin/crm", label: "CRM", icon: BarChart2 },
-  { href: "/admin/customers", label: "Клиенты", icon: Users },
-  { href: "/admin/chat", label: "Чат", icon: MessageCircle },
-  { href: "/admin/stores", label: "Магазины", icon: Store },
-  { href: "/admin/products", label: "Товары", icon: Package },
-  { href: "/admin/categories", label: "Категории", icon: FolderOpen },
-  { href: "/admin/properties", label: "Свойства", icon: Layers },
-  { href: "/admin/orders", label: "Заказы", icon: ShoppingCart },
-  { href: "/admin/banners", label: "Баннеры", icon: Image },
-  { href: "/admin/pricing", label: "Цены", icon: TrendingDown },
-  { href: "/admin/homepage", label: "Главная", icon: Home },
-  { href: "/admin/customers/stats", label: "BonusMoney", icon: Gift },
-  { href: "/admin/settings", label: "Настройки", icon: Settings },
+  { href: "/admin",               label: "Дашборд",    icon: LayoutDashboard },
+  { href: "/admin/stores",        label: "Магазины",   icon: Store           },
+  { href: "/admin/products",      label: "Товары",     icon: Package         },
+  { href: "/admin/categories",    label: "Категории",  icon: FolderOpen      },
+  { href: "/admin/properties",    label: "Свойства",   icon: Layers          },
+  { href: "/admin/orders",        label: "Заказы",     icon: ShoppingCart    },
+  { href: "/admin/banners",       label: "Баннеры",    icon: Image           },
+  { href: "/admin/pricing",       label: "Цены",       icon: TrendingDown    },
+  { href: "/admin/homepage",      label: "Главная",    icon: Home            },
+  { href: "/admin/customers/stats", label: "BonusMoney", icon: Gift          },
+  { href: "/admin/settings",      label: "Настройки",  icon: Settings        },
 ]
 
 export function AdminSidebar({ storeSlug }: { storeSlug?: string }) {
@@ -45,6 +48,7 @@ export function AdminSidebar({ storeSlug }: { storeSlug?: string }) {
 
   return (
     <aside className="flex h-screen w-60 flex-col border-r border-gray-200 bg-white">
+      {/* Header */}
       <div className="flex h-14 items-center justify-between border-b border-gray-200 px-4">
         <div>
           <span className="text-lg font-bold text-gray-900">MyShop</span>
@@ -63,6 +67,28 @@ export function AdminSidebar({ storeSlug }: { storeSlug?: string }) {
         )}
       </div>
 
+      {/* Pinned cards — CRM / Клиенты / Чат */}
+      <div className="grid grid-cols-3 gap-2 p-3 border-b border-gray-100">
+        {pinnedItems.map(({ href, label, icon: Icon, bg, text }) => {
+          const isActive = pathname.startsWith(href)
+          return (
+            <Link
+              key={href}
+              href={href}
+              className={cn(
+                "flex flex-col items-center justify-center gap-1.5 rounded-xl py-3 transition-all",
+                bg,
+                isActive ? "ring-2 ring-offset-1 ring-current opacity-100" : "opacity-80 hover:opacity-100"
+              )}
+            >
+              <Icon className={cn("h-6 w-6", text)} strokeWidth={1.8} />
+              <span className={cn("text-[11px] font-semibold", text)}>{label}</span>
+            </Link>
+          )
+        })}
+      </div>
+
+      {/* Main nav */}
       <nav className="flex-1 space-y-0.5 p-3 overflow-y-auto">
         {navItems.map((item) => {
           const Icon = item.icon
@@ -88,6 +114,7 @@ export function AdminSidebar({ storeSlug }: { storeSlug?: string }) {
         })}
       </nav>
 
+      {/* Footer */}
       <div className="border-t border-gray-200 p-3 space-y-1">
         {storeSlug && (
           <Link
