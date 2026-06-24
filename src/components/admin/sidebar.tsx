@@ -25,6 +25,9 @@ import { signOut } from "next-auth/react"
 
 const navItems = [
   { href: "/admin", label: "Дашборд", icon: LayoutDashboard },
+  { href: "/admin/crm", label: "CRM", icon: BarChart2 },
+  { href: "/admin/customers", label: "Клиенты", icon: Users },
+  { href: "/admin/chat", label: "Чат", icon: MessageCircle },
   { href: "/admin/stores", label: "Магазины", icon: Store },
   { href: "/admin/products", label: "Товары", icon: Package },
   { href: "/admin/categories", label: "Категории", icon: FolderOpen },
@@ -33,10 +36,7 @@ const navItems = [
   { href: "/admin/banners", label: "Баннеры", icon: Image },
   { href: "/admin/pricing", label: "Цены", icon: TrendingDown },
   { href: "/admin/homepage", label: "Главная", icon: Home },
-  { href: "/admin/crm", label: "CRM", icon: BarChart2 },
   { href: "/admin/customers/stats", label: "BonusMoney", icon: Gift },
-  { href: "/admin/chat", label: "Чат", icon: MessageCircle },
-  { href: "/admin/customers", label: "Клиенты", icon: Users },
   { href: "/admin/settings", label: "Настройки", icon: Settings },
 ]
 
