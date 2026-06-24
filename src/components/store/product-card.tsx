@@ -17,7 +17,7 @@ interface Product {
   stock: number
 }
 
-export function ProductCard({ product, storeSlug }: { product: Product; storeSlug: string }) {
+export function ProductCard({ product, storeSlug, index: _index }: { product: Product; storeSlug: string; index?: number }) {
   const { addItem } = useCart()
   const [added, setAdded] = useState(false)
   const discount = getDiscount(product.price, product.comparePrice)

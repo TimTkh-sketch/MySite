@@ -20,12 +20,14 @@ interface CartContextType {
   clearCart: () => void
   total: number
   count: number
+  lastAdded: Omit<CartItem, "quantity"> | null
 }
 
 const CartContext = createContext<CartContextType | null>(null)
 
 export function CartProvider({ children, storeId }: { children: React.ReactNode; storeId: string }) {
   const [items, setItems] = useState<CartItem[]>([])
+  const [lastAdded, setLastAdded] = useState<Omit<CartItem, "quantity"> | null>(null)
 
   useEffect(() => {
     const saved = localStorage.getItem(`cart-${storeId}`)
@@ -46,6 +48,7 @@ export function CartProvider({ children, storeId }: { children: React.ReactNode;
       }
       return [...prev, { ...item, quantity: 1 }]
     })
+    setLastAdded(item)
   }
 
   function removeItem(productId: string) {
@@ -63,7 +66,7 @@ export function CartProvider({ children, storeId }: { children: React.ReactNode;
   const count = items.reduce((acc, i) => acc + i.quantity, 0)
 
   return (
-    <CartContext.Provider value={{ items, storeId, addItem, removeItem, updateQuantity, clearCart, total, count }}>
+    <CartContext.Provider value={{ items, storeId, addItem, removeItem, updateQuantity, clearCart, total, count, lastAdded }}>
       {children}
     </CartContext.Provider>
   )

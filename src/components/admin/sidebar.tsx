@@ -17,6 +17,8 @@ import {
   Home,
   MessageCircle,
   Users,
+  BarChart2,
+  Gift,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { signOut } from "next-auth/react"
@@ -31,6 +33,8 @@ const navItems = [
   { href: "/admin/banners", label: "Баннеры", icon: Image },
   { href: "/admin/pricing", label: "Цены", icon: TrendingDown },
   { href: "/admin/homepage", label: "Главная", icon: Home },
+  { href: "/admin/crm", label: "CRM", icon: BarChart2 },
+  { href: "/admin/customers/stats", label: "BonusMoney", icon: Gift },
   { href: "/admin/chat", label: "Чат", icon: MessageCircle },
   { href: "/admin/customers", label: "Клиенты", icon: Users },
   { href: "/admin/settings", label: "Настройки", icon: Settings },
