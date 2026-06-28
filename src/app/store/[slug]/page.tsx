@@ -1,28 +1,15 @@
 import Link from "next/link"
 import Image from "next/image"
-import { ArrowRight, ArrowUpRight } from "lucide-react"
+import { ArrowRight, ArrowUpRight, Truck, ShieldCheck, Star } from "lucide-react"
 import { notFound } from "next/navigation"
 import { db } from "@/lib/db"
 import { ProductCard } from "@/components/store/product-card"
 import { BannerCarousel } from "@/components/store/banner-carousel"
 import { MiniBanners } from "@/components/store/mini-banners"
 import { HeroCarousel } from "@/components/store/hero-carousel"
-import { ScrollReveal } from "@/components/store/scroll-reveal"
 import { CountUp } from "@/components/store/count-up"
-import { AnimatedSection } from "@/components/ui/animated-section"
+import { ScrollReveal } from "@/components/store/scroll-reveal"
 import { formatPrice } from "@/lib/utils"
-
-function catLabel(name: string) {
-  const n = name.toLowerCase()
-  if (n.includes("apple") || n.includes("iphone")) return "🍎"
-  if (n.includes("samsung")) return "📱"
-  if (n.includes("xiaomi") || n.includes("redmi")) return "⚡"
-  if (n.includes("наушник") || n.includes("audio")) return "🎧"
-  if (n.includes("ноутбук")) return "💻"
-  if (n.includes("планшет")) return "📟"
-  if (n.includes("часы") || n.includes("watch")) return "⌚"
-  return "📦"
-}
 
 export default async function StorePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
@@ -58,126 +45,168 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
   const carouselProducts = [...featuredProducts, ...newProducts.filter(p => !featuredProducts.find(f => f.id === p.id))].slice(0, 8)
 
   return (
-    <div className="min-h-screen overflow-x-hidden">
+    <div className="min-h-screen overflow-x-hidden" style={{ background: "var(--bg)" }}>
 
-      {/* ══ HERO ═════════════════════════════════════════════════ */}
+      {/* ══ HERO ════════════════════════════════════════════════ */}
       {carouselProducts.length > 0 ? (
         <HeroCarousel products={carouselProducts} storeSlug={slug} storeName={store.name} />
       ) : (
-        <div className="min-h-[60vh] flex items-center justify-center px-6 pt-20">
+        <div
+          className="min-h-[60vh] flex items-center justify-center px-6"
+          style={{ paddingTop: 52, background: "#000" }}
+        >
           <div className="text-center">
-            <p className="label-tag mb-4">Магазин пуст</p>
-            <p className="text-[#999] text-sm">Добавьте товары в магазин</p>
+            <p className="label-tag mb-4" style={{ color: "var(--accent-on-dark)" }}>Магазин пуст</p>
+            <p className="text-[15px]" style={{ color: "rgba(255,255,255,0.4)" }}>Добавьте товары в магазин</p>
           </div>
         </div>
       )}
 
-      {/* ══ CATEGORIES ═══════════════════════════════════════════ */}
+      {/* ══ CATEGORIES ══════════════════════════════════════════ */}
       {store.categories.length > 0 && (
-        <section className="py-20 sm:py-28 bg-[#f7f7f7]">
-          <div className="max-w-7xl mx-auto px-6 sm:px-10">
-            <AnimatedSection>
-              <div className="mb-10">
-                <p className="label-tag mb-3">— РАЗДЕЛЫ</p>
+        <section style={{ background: "var(--bg)", padding: "96px 0" }}>
+          <div className="max-w-[1400px] mx-auto px-6 lg:px-10">
+
+            <ScrollReveal>
+              <div style={{ marginBottom: 48 }}>
+                <p className="label-tag" style={{ marginBottom: 12 }}>Разделы</p>
                 <h2
-                  className="font-bold text-[#0a0a0a] tracking-tight leading-none"
-                  style={{ fontSize: "clamp(36px, 5vw, 72px)", letterSpacing: "-0.03em" }}
+                  className="font-bold tracking-tight"
+                  style={{ fontSize: "clamp(36px, 5vw, 64px)", letterSpacing: "-0.02em", color: "var(--text)" }}
                 >
                   Что ищете?
                 </h2>
               </div>
-            </AnimatedSection>
+            </ScrollReveal>
 
-            <AnimatedSection>
-              <div className="flex flex-wrap gap-2.5">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+              {/* Карточка "Все товары" */}
+              <ScrollReveal>
                 <Link
                   href={`${base}/catalog`}
-                  className="btn-primary flex items-center gap-2 px-5 py-2.5 text-sm font-bold"
-                  style={{ borderRadius: 100 }}
+                  className="group flex flex-col justify-between p-6 rounded-2xl transition-all duration-300"
+                  style={{
+                    background: "var(--bg-dark)",
+                    aspectRatio: "4/3",
+                    color: "#fff",
+                  }}
+                  onMouseEnter={e => ((e.currentTarget as HTMLElement).style.transform = "translateY(-4px)")}
+                  onMouseLeave={e => ((e.currentTarget as HTMLElement).style.transform = "translateY(0)")}
                 >
-                  Все · {totalCount}+
+                  <div>
+                    <p className="text-[11px] font-semibold tracking-[0.08em] uppercase" style={{ color: "var(--accent-on-dark)", marginBottom: 8 }}>
+                      Весь каталог
+                    </p>
+                    <p className="text-[20px] font-semibold" style={{ color: "#fff" }}>
+                      Все товары
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[14px]" style={{ color: "rgba(255,255,255,0.45)" }}>
+                      {totalCount}+ позиций
+                    </span>
+                    <ArrowUpRight className="h-5 w-5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" style={{ color: "var(--accent-on-dark)" }} />
+                  </div>
                 </Link>
-                {store.categories.map((cat) => (
+              </ScrollReveal>
+
+              {store.categories.map((cat, i) => (
+                <ScrollReveal key={cat.id} delay={i * 50}>
                   <Link
-                    key={cat.id}
                     href={`${base}/catalog?category=${cat.slug}`}
-                    className="btn-glass flex items-center gap-2 px-5 py-2.5 text-sm font-semibold"
-                    style={{ borderRadius: 100 }}
+                    className="group flex flex-col justify-between p-6 rounded-2xl transition-all duration-300"
+                    style={{ background: "var(--bg-gray)", aspectRatio: "4/3" }}
+                    onMouseEnter={e => {
+                      const el = e.currentTarget as HTMLElement
+                      el.style.transform = "translateY(-4px)"
+                      el.style.boxShadow = "var(--shadow-hover)"
+                    }}
+                    onMouseLeave={e => {
+                      const el = e.currentTarget as HTMLElement
+                      el.style.transform = "translateY(0)"
+                      el.style.boxShadow = "none"
+                    }}
                   >
-                    <span>{catLabel(cat.name)}</span>
-                    {cat.name}
-                    {cat._count.products > 0 && (
-                      <span className="opacity-40 text-xs">{cat._count.products}</span>
-                    )}
+                    <div>
+                      <p
+                        className="text-[20px] font-semibold"
+                        style={{ color: "var(--text)" }}
+                      >
+                        {cat.name}
+                      </p>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[13px]" style={{ color: "var(--text-3)" }}>
+                        {cat._count.products} товаров
+                      </span>
+                      <ArrowUpRight
+                        className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-all group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+                        style={{ color: "var(--accent)" }}
+                      />
+                    </div>
                   </Link>
-                ))}
-              </div>
-            </AnimatedSection>
+                </ScrollReveal>
+              ))}
+            </div>
           </div>
         </section>
       )}
 
-      {/* ══ BANNERS ══════════════════════════════════════════════ */}
+      {/* ══ BANNERS ═════════════════════════════════════════════ */}
       {heroBanners.length > 0 && (
-        <div className="max-w-7xl mx-auto px-6 sm:px-10 py-8">
+        <div className="max-w-[1400px] mx-auto px-6 lg:px-10 pb-8">
           <BannerCarousel banners={heroBanners as never} />
         </div>
       )}
 
-      {/* ══ FEATURED — ХИТЫ ПРОДАЖ ═══════════════════════════════ */}
+      {/* ══ FEATURED — ХИТЫ ПРОДАЖ ══════════════════════════════ */}
       {featuredProducts.length > 0 && (
-        <section className="py-20 sm:py-32 bg-white">
-          <div className="max-w-7xl mx-auto px-6 sm:px-10">
+        <section style={{ background: "var(--bg)", padding: "80px 0 96px" }}>
+          <div className="max-w-[1400px] mx-auto px-6 lg:px-10">
 
-            {/* Section header */}
-            <AnimatedSection>
-              <div className="relative mb-12 sm:mb-16">
-                {/* Editorial bg number */}
-                <div
-                  className="editorial-num absolute -top-4 -left-4 sm:-left-6 pointer-events-none select-none z-0"
+            <ScrollReveal>
+              <div className="flex items-end justify-between mb-10">
+                <div>
+                  <p className="label-tag" style={{ marginBottom: 8 }}>Популярное</p>
+                  <h2
+                    className="font-bold"
+                    style={{ fontSize: "clamp(36px, 5vw, 64px)", letterSpacing: "-0.02em", color: "var(--text)" }}
+                  >
+                    Хиты продаж
+                  </h2>
+                </div>
+                <Link
+                  href={`${base}/catalog?featured=1`}
+                  className="hidden sm:flex items-center gap-1.5 text-[13px] font-semibold transition-colors hover:opacity-70 pb-2"
+                  style={{ color: "var(--accent)" }}
                 >
-                  01
-                </div>
-                <div className="relative z-10">
-                  <p className="label-tag mb-4">— ПОПУЛЯРНОЕ</p>
-                  <div className="flex items-end justify-between gap-4">
-                    <h2
-                      className="font-bold text-[#0a0a0a] tracking-tight leading-none"
-                      style={{ fontSize: "clamp(36px, 5.5vw, 80px)", letterSpacing: "-0.03em" }}
-                    >
-                      Хиты продаж
-                    </h2>
-                    <Link
-                      href={`${base}/catalog?featured=1`}
-                      className="label-tag text-[#999] hover:text-[#F26522] flex items-center gap-1 transition-colors shrink-0 pb-2"
-                    >
-                      ВСЕ <ArrowRight className="h-3 w-3" />
-                    </Link>
-                  </div>
-                </div>
+                  Все <ArrowRight className="h-3.5 w-3.5" />
+                </Link>
               </div>
-            </AnimatedSection>
+            </ScrollReveal>
 
-            {/* Top featured — wide card */}
+            {/* Топ-товар — широкая карточка */}
             {featuredProducts[0] && (
-              <AnimatedSection direction="scale" className="mb-6">
+              <ScrollReveal className="mb-5">
                 <Link
                   href={`${base}/product/${featuredProducts[0].slug}`}
-                  className="group block overflow-hidden rounded-3xl bg-[#f7f7f7] hover:bg-[#f0f0f0] transition-colors duration-500"
-                  style={{ minHeight: 300 }}
+                  className="group block rounded-2xl overflow-hidden transition-all duration-300"
+                  style={{ background: "var(--bg-gray)", minHeight: 280 }}
+                  onMouseEnter={e => {
+                    const el = e.currentTarget as HTMLElement
+                    el.style.boxShadow = "var(--shadow-hover)"
+                    el.style.transform = "translateY(-3px)"
+                  }}
+                  onMouseLeave={e => {
+                    const el = e.currentTarget as HTMLElement
+                    el.style.boxShadow = "none"
+                    el.style.transform = "translateY(0)"
+                  }}
                 >
                   <div className="flex flex-col sm:flex-row">
-                    {/* Image */}
-                    <div className="relative sm:w-80 lg:w-96 aspect-square sm:aspect-auto shrink-0 flex items-center justify-center p-8 lg:p-12">
-                      <div
-                        className="absolute inset-0 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-                        style={{ background: "radial-gradient(ellipse at center, rgba(242,101,34,0.06) 0%, transparent 70%)" }}
-                      />
+                    <div className="relative sm:w-72 lg:w-96 aspect-square sm:aspect-auto shrink-0 flex items-center justify-center p-10">
                       {featuredProducts[0].images[0] && (
-                        <div
-                          className="relative w-full h-full"
-                          style={{ maxWidth: 280, maxHeight: 280 }}
-                        >
+                        <div className="relative w-full h-full" style={{ maxWidth: 260, maxHeight: 260 }}>
                           <Image
                             src={featuredProducts[0].images[0]}
                             alt={featuredProducts[0].name}
@@ -188,86 +217,142 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
                         </div>
                       )}
                     </div>
-
-                    {/* Info */}
                     <div className="flex flex-col justify-between p-8 sm:p-10 lg:p-14">
                       <div>
-                        <span className="label-tag opacity-50 block mb-4">01 · HOT DROP</span>
+                        <span className="label-tag block mb-4 opacity-50">01 · ХИТ</span>
                         <h3
-                          className="font-bold text-[#0a0a0a] leading-tight tracking-tight mb-4"
-                          style={{ fontSize: "clamp(24px, 3.5vw, 48px)", letterSpacing: "-0.02em" }}
+                          className="font-bold leading-tight tracking-tight mb-4"
+                          style={{ fontSize: "clamp(22px, 3vw, 42px)", letterSpacing: "-0.02em", color: "var(--text)" }}
                         >
                           {featuredProducts[0].name}
                         </h3>
                         <p
-                          className="font-black text-[#0a0a0a]"
-                          style={{ fontSize: "clamp(28px, 4vw, 52px)", letterSpacing: "-0.02em" }}
+                          className="font-black"
+                          style={{ fontSize: "clamp(26px, 3.5vw, 46px)", letterSpacing: "-0.02em", color: "var(--text)" }}
                         >
                           {formatPrice(featuredProducts[0].price)}
                         </p>
                       </div>
                       <div className="flex items-center gap-3 mt-8">
-                        <span className="btn-primary px-6 py-3 rounded-full text-sm font-bold inline-flex items-center gap-2">
+                        <span className="btn-primary" style={{ fontSize: 15, height: 48 }}>
                           Подробнее <ArrowUpRight className="h-4 w-4" />
                         </span>
                       </div>
                     </div>
                   </div>
                 </Link>
-              </AnimatedSection>
+              </ScrollReveal>
             )}
 
-            {/* Product grid */}
-            <div className="grid grid-cols-2 gap-4 sm:gap-6 sm:grid-cols-3 lg:grid-cols-4">
+            {/* Сетка карточек */}
+            <div className="grid grid-cols-2 gap-4 sm:gap-5 sm:grid-cols-3 lg:grid-cols-4">
               {featuredProducts.slice(1).map((p, i) => (
-                <ProductCard key={p.id} product={p} storeSlug={slug} index={i + 1} />
+                <ScrollReveal key={p.id} delay={i * 60}>
+                  <ProductCard product={p} storeSlug={slug} index={i + 1} />
+                </ScrollReveal>
               ))}
             </div>
           </div>
         </section>
       )}
 
-      {/* ══ MINI BANNERS ══════════════════════════════════════════ */}
+      {/* ══ MINI BANNERS ════════════════════════════════════════ */}
       {miniBanners.length > 0 && (
-        <div className="max-w-7xl mx-auto px-6 sm:px-10 py-6">
+        <div className="max-w-[1400px] mx-auto px-6 lg:px-10 py-6">
           <MiniBanners banners={miniBanners as never} />
         </div>
       )}
 
-      {/* ══ NEW ARRIVALS ══════════════════════════════════════════ */}
-      {newProducts.length > 0 && (
-        <section className="py-20 sm:py-32 bg-[#f7f7f7]">
-          <div className="max-w-7xl mx-auto">
-            <AnimatedSection>
-              <div className="px-6 sm:px-10 relative mb-12">
-                <div
-                  className="editorial-num absolute -top-4 right-4 pointer-events-none select-none z-0"
-                >
-                  02
-                </div>
-                <div className="relative z-10">
-                  <p className="label-tag mb-4">— СВЕЖЕЕ</p>
-                  <div className="flex items-end justify-between gap-4">
-                    <h2
-                      className="font-bold text-[#0a0a0a] tracking-tight leading-none"
-                      style={{ fontSize: "clamp(36px, 5.5vw, 80px)", letterSpacing: "-0.03em" }}
+      {/* ══ ПОЧЕМУ МЫ — тёмная секция ═══════════════════════════ */}
+      <section style={{ background: "var(--bg-dark)", padding: "100px 0" }}>
+        <div className="max-w-[1400px] mx-auto px-6 lg:px-10">
+          <ScrollReveal>
+            <h2
+              className="font-bold tracking-tight"
+              style={{
+                color: "#fff",
+                fontSize: "clamp(32px, 5vw, 56px)",
+                letterSpacing: "-0.02em",
+                marginBottom: 64,
+              }}
+            >
+              Почему выбирают нас
+            </h2>
+          </ScrollReveal>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+              gap: 2,
+              borderRadius: "var(--r-xl)",
+              overflow: "hidden",
+              background: "rgba(255,255,255,0.06)",
+            }}
+          >
+            {[
+              { icon: Truck,        title: "Быстрая доставка",     text: "Доставляем по городу в день заказа" },
+              { icon: ShieldCheck,  title: "Оригинальная техника",  text: "Только официальные поставщики, без подделок" },
+              { icon: Star,         title: "Гарантия 2 года",       text: "Полное сервисное обслуживание включено" },
+            ].map((item, i) => {
+              const Icon = item.icon
+              return (
+                <ScrollReveal key={i} delay={i * 80}>
+                  <div
+                    style={{
+                      background: "var(--bg-dark)",
+                      padding: "48px 40px",
+                      borderRight: i < 2 ? "1px solid rgba(255,255,255,0.06)" : "none",
+                    }}
+                  >
+                    <div style={{ marginBottom: 20 }}>
+                      <Icon className="h-8 w-8" style={{ color: "var(--accent-on-dark)" }} strokeWidth={1.5} />
+                    </div>
+                    <div
+                      style={{ fontSize: 20, fontWeight: 600, color: "#fff", marginBottom: 10 }}
                     >
-                      Новинки
-                    </h2>
-                    <Link
-                      href={`${base}/catalog`}
-                      className="label-tag text-[#999] hover:text-[#F26522] flex items-center gap-1 transition-colors shrink-0 pb-2"
+                      {item.title}
+                    </div>
+                    <div
+                      style={{ fontSize: 15, color: "var(--text-2)", lineHeight: 1.6 }}
                     >
-                      КАТАЛОГ <ArrowRight className="h-3 w-3" />
-                    </Link>
+                      {item.text}
+                    </div>
                   </div>
-                </div>
-              </div>
-            </AnimatedSection>
+                </ScrollReveal>
+              )
+            })}
+          </div>
+        </div>
+      </section>
 
-            {/* Horizontal scroll */}
+      {/* ══ NEW ARRIVALS ════════════════════════════════════════ */}
+      {newProducts.length > 0 && (
+        <section style={{ background: "var(--bg-gray)", padding: "96px 0" }}>
+          <div className="max-w-[1400px] mx-auto">
+
+            <ScrollReveal>
+              <div className="px-6 lg:px-10 flex items-end justify-between mb-10">
+                <div>
+                  <p className="label-tag" style={{ marginBottom: 8 }}>Свежее</p>
+                  <h2
+                    className="font-bold tracking-tight"
+                    style={{ fontSize: "clamp(36px, 5.5vw, 64px)", letterSpacing: "-0.02em", color: "var(--text)" }}
+                  >
+                    Новинки
+                  </h2>
+                </div>
+                <Link
+                  href={`${base}/catalog`}
+                  className="hidden sm:flex items-center gap-1.5 text-[13px] font-semibold transition-colors hover:opacity-70 pb-2"
+                  style={{ color: "var(--accent)" }}
+                >
+                  Каталог <ArrowRight className="h-3.5 w-3.5" />
+                </Link>
+              </div>
+            </ScrollReveal>
+
             <div
-              className="flex gap-4 sm:gap-6 overflow-x-auto scrollbar-hide pb-4 px-6 sm:px-10 snap-x snap-mandatory"
+              className="flex gap-4 sm:gap-5 overflow-x-auto scrollbar-hide pb-4 px-6 lg:px-10 snap-x snap-mandatory"
               style={{ WebkitOverflowScrolling: "touch" } as React.CSSProperties}
             >
               {newProducts.map((p, i) => (
@@ -280,44 +365,48 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
         </section>
       )}
 
-      {/* ══ STATS ═════════════════════════════════════════════════ */}
-      <section className="py-20 sm:py-28 bg-white">
-        <div className="max-w-7xl mx-auto px-6 sm:px-10">
-          <AnimatedSection>
-            <div className="relative mb-12 sm:mb-16">
-              <div
-                className="editorial-num absolute -top-4 -left-4 sm:-left-6 pointer-events-none select-none z-0"
+      {/* ══ STATS ═══════════════════════════════════════════════ */}
+      <section style={{ background: "var(--bg)", padding: "80px 0 100px" }}>
+        <div className="max-w-[1400px] mx-auto px-6 lg:px-10">
+          <ScrollReveal>
+            <div style={{ marginBottom: 48 }}>
+              <p className="label-tag" style={{ marginBottom: 8 }}>Цифры</p>
+              <h2
+                className="font-bold tracking-tight"
+                style={{ fontSize: "clamp(32px, 4.5vw, 56px)", letterSpacing: "-0.02em", color: "var(--text)" }}
               >
-                03
-              </div>
-              <div className="relative z-10">
-                <p className="label-tag mb-3">— ЦИФРЫ</p>
-                <h2
-                  className="font-bold text-[#0a0a0a] tracking-tight leading-none"
-                  style={{ fontSize: "clamp(36px, 5vw, 72px)", letterSpacing: "-0.03em" }}
-                >
-                  Мы в цифрах
-                </h2>
-              </div>
+                Мы в цифрах
+              </h2>
             </div>
-          </AnimatedSection>
+          </ScrollReveal>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-[#e8e8e8]">
+          <div
+            className="grid grid-cols-2 sm:grid-cols-4"
+            style={{ borderTop: "1px solid var(--border)" }}
+          >
             {[
               { label: "Товаров в каталоге", value: totalCount, suffix: "+" },
               { label: "Лет на рынке",       value: 12,         suffix: "" },
               { label: "Заказов в день",      value: 50,         suffix: "+" },
               { label: "Гарантия качества",   value: 100,        suffix: "%" },
             ].map(({ label, value, suffix }, i) => (
-              <ScrollReveal key={label} delay={i * 80} type="scale">
-                <div className="bg-white px-8 py-10 sm:py-14">
+              <ScrollReveal key={label} delay={i * 80}>
+                <div
+                  className="py-10 px-8"
+                  style={{
+                    borderBottom:  "1px solid var(--border)",
+                    borderRight:   i < 3 ? "1px solid var(--border)" : "none",
+                  }}
+                >
                   <p
-                    className="font-black text-[#F26522] leading-none tracking-tight mb-2"
-                    style={{ fontSize: "clamp(40px, 6vw, 80px)", letterSpacing: "-0.03em" }}
+                    className="font-black leading-none tracking-tight mb-2"
+                    style={{ fontSize: "clamp(40px, 5.5vw, 72px)", letterSpacing: "-0.03em", color: "var(--accent)" }}
                   >
                     <CountUp target={value} suffix={suffix} />
                   </p>
-                  <p className="text-[13px] text-[#888] font-medium">{label}</p>
+                  <p className="text-[13px] font-medium" style={{ color: "var(--text-3)" }}>
+                    {label}
+                  </p>
                 </div>
               </ScrollReveal>
             ))}
