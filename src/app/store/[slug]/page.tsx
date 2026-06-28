@@ -82,19 +82,12 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
               {/* Карточка "Все товары" */}
               <ScrollReveal>
-                <Link
-                  href={`${base}/catalog`}
-                  className="group flex flex-col justify-between p-6 rounded-2xl transition-all duration-300"
-                  style={{
-                    background: "var(--bg-dark)",
-                    aspectRatio: "4/3",
-                    color: "#fff",
-                  }}
-                  onMouseEnter={e => ((e.currentTarget as HTMLElement).style.transform = "translateY(-4px)")}
-                  onMouseLeave={e => ((e.currentTarget as HTMLElement).style.transform = "translateY(0)")}
-                >
+                <Link href={`${base}/catalog`} className="cat-card-dark">
                   <div>
-                    <p className="text-[11px] font-semibold tracking-[0.08em] uppercase" style={{ color: "var(--accent-on-dark)", marginBottom: 8 }}>
+                    <p
+                      className="text-[11px] font-semibold tracking-[0.08em] uppercase"
+                      style={{ color: "var(--accent-on-dark)", marginBottom: 8 }}
+                    >
                       Весь каталог
                     </p>
                     <p className="text-[20px] font-semibold" style={{ color: "#fff" }}>
@@ -105,33 +98,16 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
                     <span className="text-[14px]" style={{ color: "rgba(255,255,255,0.45)" }}>
                       {totalCount}+ позиций
                     </span>
-                    <ArrowUpRight className="h-5 w-5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" style={{ color: "var(--accent-on-dark)" }} />
+                    <ArrowUpRight className="h-5 w-5" style={{ color: "var(--accent-on-dark)" }} />
                   </div>
                 </Link>
               </ScrollReveal>
 
               {store.categories.map((cat, i) => (
                 <ScrollReveal key={cat.id} delay={i * 50}>
-                  <Link
-                    href={`${base}/catalog?category=${cat.slug}`}
-                    className="group flex flex-col justify-between p-6 rounded-2xl transition-all duration-300"
-                    style={{ background: "var(--bg-gray)", aspectRatio: "4/3" }}
-                    onMouseEnter={e => {
-                      const el = e.currentTarget as HTMLElement
-                      el.style.transform = "translateY(-4px)"
-                      el.style.boxShadow = "var(--shadow-hover)"
-                    }}
-                    onMouseLeave={e => {
-                      const el = e.currentTarget as HTMLElement
-                      el.style.transform = "translateY(0)"
-                      el.style.boxShadow = "none"
-                    }}
-                  >
+                  <Link href={`${base}/catalog?category=${cat.slug}`} className="cat-card">
                     <div>
-                      <p
-                        className="text-[20px] font-semibold"
-                        style={{ color: "var(--text)" }}
-                      >
+                      <p className="text-[20px] font-semibold" style={{ color: "var(--text)" }}>
                         {cat.name}
                       </p>
                     </div>
@@ -140,7 +116,7 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
                         {cat._count.products} товаров
                       </span>
                       <ArrowUpRight
-                        className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-all group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+                        className="cat-arrow h-4 w-4"
                         style={{ color: "var(--accent)" }}
                       />
                     </div>
@@ -177,7 +153,7 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
                 </div>
                 <Link
                   href={`${base}/catalog?featured=1`}
-                  className="hidden sm:flex items-center gap-1.5 text-[13px] font-semibold transition-colors hover:opacity-70 pb-2"
+                  className="hidden sm:flex items-center gap-1.5 text-[13px] font-semibold pb-2"
                   style={{ color: "var(--accent)" }}
                 >
                   Все <ArrowRight className="h-3.5 w-3.5" />
@@ -185,23 +161,12 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
               </div>
             </ScrollReveal>
 
-            {/* Топ-товар — широкая карточка */}
+            {/* Топ-товар */}
             {featuredProducts[0] && (
               <ScrollReveal className="mb-5">
                 <Link
                   href={`${base}/product/${featuredProducts[0].slug}`}
-                  className="group block rounded-2xl overflow-hidden transition-all duration-300"
-                  style={{ background: "var(--bg-gray)", minHeight: 280 }}
-                  onMouseEnter={e => {
-                    const el = e.currentTarget as HTMLElement
-                    el.style.boxShadow = "var(--shadow-hover)"
-                    el.style.transform = "translateY(-3px)"
-                  }}
-                  onMouseLeave={e => {
-                    const el = e.currentTarget as HTMLElement
-                    el.style.boxShadow = "none"
-                    el.style.transform = "translateY(0)"
-                  }}
+                  className="featured-hero-card"
                 >
                   <div className="flex flex-col sm:flex-row">
                     <div className="relative sm:w-72 lg:w-96 aspect-square sm:aspect-auto shrink-0 flex items-center justify-center p-10">
@@ -290,9 +255,9 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
             }}
           >
             {[
-              { icon: Truck,        title: "Быстрая доставка",     text: "Доставляем по городу в день заказа" },
-              { icon: ShieldCheck,  title: "Оригинальная техника",  text: "Только официальные поставщики, без подделок" },
-              { icon: Star,         title: "Гарантия 2 года",       text: "Полное сервисное обслуживание включено" },
+              { icon: Truck,       title: "Быстрая доставка",    text: "Доставляем по городу в день заказа" },
+              { icon: ShieldCheck, title: "Оригинальная техника", text: "Только официальные поставщики, без подделок" },
+              { icon: Star,        title: "Гарантия 2 года",      text: "Полное сервисное обслуживание включено" },
             ].map((item, i) => {
               const Icon = item.icon
               return (
@@ -304,17 +269,11 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
                       borderRight: i < 2 ? "1px solid rgba(255,255,255,0.06)" : "none",
                     }}
                   >
-                    <div style={{ marginBottom: 20 }}>
-                      <Icon className="h-8 w-8" style={{ color: "var(--accent-on-dark)" }} strokeWidth={1.5} />
-                    </div>
-                    <div
-                      style={{ fontSize: 20, fontWeight: 600, color: "#fff", marginBottom: 10 }}
-                    >
+                    <Icon className="h-8 w-8 mb-5" style={{ color: "var(--accent-on-dark)" }} strokeWidth={1.5} />
+                    <div style={{ fontSize: 20, fontWeight: 600, color: "#fff", marginBottom: 10 }}>
                       {item.title}
                     </div>
-                    <div
-                      style={{ fontSize: 15, color: "var(--text-2)", lineHeight: 1.6 }}
-                    >
+                    <div style={{ fontSize: 15, color: "var(--text-2)", lineHeight: 1.6 }}>
                       {item.text}
                     </div>
                   </div>
@@ -343,7 +302,7 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
                 </div>
                 <Link
                   href={`${base}/catalog`}
-                  className="hidden sm:flex items-center gap-1.5 text-[13px] font-semibold transition-colors hover:opacity-70 pb-2"
+                  className="hidden sm:flex items-center gap-1.5 text-[13px] font-semibold pb-2"
                   style={{ color: "var(--accent)" }}
                 >
                   Каталог <ArrowRight className="h-3.5 w-3.5" />
@@ -394,8 +353,8 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
                 <div
                   className="py-10 px-8"
                   style={{
-                    borderBottom:  "1px solid var(--border)",
-                    borderRight:   i < 3 ? "1px solid var(--border)" : "none",
+                    borderBottom: "1px solid var(--border)",
+                    borderRight: i < 3 ? "1px solid var(--border)" : "none",
                   }}
                 >
                   <p

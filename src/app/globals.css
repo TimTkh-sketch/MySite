@@ -397,6 +397,82 @@ body {
   box-shadow: var(--shadow-hover);
 }
 
+/* ─── CAT CARD ──────────────────────────────────────────────── */
+.cat-card-dark {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 24px;
+  border-radius: 18px;
+  aspect-ratio: 4/3;
+  background: var(--bg-dark);
+  color: #fff;
+  text-decoration: none;
+  transition: transform 0.3s var(--ease), box-shadow 0.3s var(--ease);
+}
+.cat-card-dark:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 48px rgba(0,0,0,0.35);
+}
+.cat-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 24px;
+  border-radius: 18px;
+  aspect-ratio: 4/3;
+  background: var(--bg-gray);
+  text-decoration: none;
+  transition: transform 0.3s var(--ease), box-shadow 0.3s var(--ease);
+}
+.cat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-hover);
+}
+.cat-card .cat-arrow {
+  opacity: 0;
+  transition: opacity 0.2s, transform 0.2s;
+}
+.cat-card:hover .cat-arrow {
+  opacity: 1;
+  transform: translate(2px, -2px);
+}
+
+/* ─── FEATURED HERO CARD ─────────────────────────────────────── */
+.featured-hero-card {
+  display: block;
+  border-radius: 18px;
+  overflow: hidden;
+  background: var(--bg-gray);
+  min-height: 280px;
+  text-decoration: none;
+  transition: transform 0.3s var(--ease), box-shadow 0.3s var(--ease);
+}
+.featured-hero-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-hover);
+}
+
+/* ─── SOCIAL ICON ────────────────────────────────────────────── */
+.social-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: 800;
+  background: rgba(0,0,0,0.06);
+  color: var(--text-2);
+  text-decoration: none;
+  transition: background 0.2s, color 0.2s;
+}
+.social-icon:hover {
+  background: var(--accent);
+  color: #fff;
+}
+
 /* ─── EDITORIAL NUM ─────────────────────────────────────────── */
 .editorial-num {
   font-size: clamp(80px, 16vw, 180px);

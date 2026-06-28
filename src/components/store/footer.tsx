@@ -48,7 +48,7 @@ export function StoreFooter({ store }: { store: Store }) {
             {store.settings?.phone && (
               <a
                 href={`tel:${store.settings.phone}`}
-                className="inline-flex items-center gap-2 text-[14px] font-semibold transition-colors hover:opacity-70"
+                className="inline-flex items-center gap-2 text-[14px] font-semibold"
                 style={{ color: "var(--text)" }}
               >
                 <Phone className="h-3.5 w-3.5 shrink-0" style={{ color: "var(--accent)" }} />
@@ -64,21 +64,7 @@ export function StoreFooter({ store }: { store: Store }) {
                     href={store.settings.socialVk}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center justify-center w-8 h-8 rounded-full text-[11px] font-black transition-all"
-                    style={{
-                      background: "rgba(0,0,0,0.06)",
-                      color: "var(--text-2)",
-                    }}
-                    onMouseEnter={e => {
-                      const el = e.currentTarget as HTMLElement
-                      el.style.background = "var(--accent)"
-                      el.style.color = "#fff"
-                    }}
-                    onMouseLeave={e => {
-                      const el = e.currentTarget as HTMLElement
-                      el.style.background = "rgba(0,0,0,0.06)"
-                      el.style.color = "var(--text-2)"
-                    }}
+                    className="social-icon"
                   >
                     ВК
                   </a>
@@ -88,21 +74,7 @@ export function StoreFooter({ store }: { store: Store }) {
                     href={store.settings.socialTg}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center justify-center w-8 h-8 rounded-full text-[11px] font-black transition-all"
-                    style={{
-                      background: "rgba(0,0,0,0.06)",
-                      color: "var(--text-2)",
-                    }}
-                    onMouseEnter={e => {
-                      const el = e.currentTarget as HTMLElement
-                      el.style.background = "var(--accent)"
-                      el.style.color = "#fff"
-                    }}
-                    onMouseLeave={e => {
-                      const el = e.currentTarget as HTMLElement
-                      el.style.background = "rgba(0,0,0,0.06)"
-                      el.style.color = "var(--text-2)"
-                    }}
+                    className="social-icon"
                   >
                     TG
                   </a>
@@ -110,7 +82,6 @@ export function StoreFooter({ store }: { store: Store }) {
               </div>
             )}
 
-            {/* Адрес / режим */}
             {store.settings?.address && (
               <div className="flex items-start gap-2 mt-4 text-[13px]" style={{ color: "var(--text-3)" }}>
                 <MapPin className="h-3.5 w-3.5 shrink-0 mt-0.5" style={{ color: "var(--accent)" }} />
@@ -143,7 +114,7 @@ export function StoreFooter({ store }: { store: Store }) {
                 <Link
                   key={label}
                   href={href}
-                  className="block text-[14px] transition-colors hover:opacity-70"
+                  className="block text-[14px] transition-opacity hover:opacity-60"
                   style={{ color: "var(--text-2)" }}
                 >
                   {label}
@@ -162,15 +133,15 @@ export function StoreFooter({ store }: { store: Store }) {
             </p>
             <div className="space-y-3">
               {[
-                { label: "Доставка и оплата",        href: "#" },
-                { label: "Гарантия и возврат",       href: "#" },
-                { label: "Личный кабинет",           href: "/customer/login" },
-                { label: "Бонусная программа",       href: `${base}/account` },
+                { label: "Доставка и оплата",  href: "#" },
+                { label: "Гарантия и возврат", href: "#" },
+                { label: "Личный кабинет",     href: "/customer/login" },
+                { label: "Бонусная программа", href: `${base}/account` },
               ].map(({ label, href }) => (
                 <Link
                   key={label}
                   href={href}
-                  className="block text-[14px] transition-colors hover:opacity-70"
+                  className="block text-[14px] transition-opacity hover:opacity-60"
                   style={{ color: "var(--text-2)" }}
                 >
                   {label}
@@ -190,7 +161,7 @@ export function StoreFooter({ store }: { store: Store }) {
           </span>
           <Link
             href="#"
-            className="text-[13px] transition-colors hover:opacity-70"
+            className="text-[13px] transition-opacity hover:opacity-60"
             style={{ color: "var(--text-3)" }}
           >
             Политика конфиденциальности
