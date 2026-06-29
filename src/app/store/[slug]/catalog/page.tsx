@@ -71,12 +71,7 @@ export default async function CatalogPage({
   }
 
   const [products, total] = await Promise.all([
-    db.product.findMany({
-      where: whereClause,
-      orderBy: buildOrderBy(sort),
-      skip: (page - 1) * pageSize,
-      take: pageSize,
-    }),
+    db.product.findMany({ where: whereClause, orderBy: buildOrderBy(sort), skip: (page - 1) * pageSize, take: pageSize }),
     db.product.count({ where: whereClause }),
   ])
 
@@ -117,20 +112,16 @@ export default async function CatalogPage({
   }
 
   return (
-    <div className="min-h-screen" style={{ background: "var(--bg)", paddingTop: 72 }}>
+    <div className="min-h-screen" style={{ background: "#000", paddingTop: 60 }}>
       <div className="max-w-[1400px] mx-auto px-6 lg:px-10 py-8">
 
         {/* Breadcrumb */}
         <nav className="flex items-center gap-1.5 mb-6 flex-wrap animate-fade-in" style={{ fontSize: 12 }}>
-          <Link href={base} className="transition-colors" style={{ color: "var(--text-3)" }}>Главная</Link>
+          <Link href={base} className="transition-colors" style={{ color: "var(--text-3)", textDecoration: "none" }}>Главная</Link>
           <ChevronRight className="h-3 w-3" style={{ color: "var(--text-3)" }} />
           {selectedRoot && selectedRoot.id !== selectedCategory?.id && (
             <>
-              <Link
-                href={`${catalogBase}?category=${selectedRoot.slug}`}
-                className="transition-colors"
-                style={{ color: "var(--text-3)" }}
-              >
+              <Link href={`${catalogBase}?category=${selectedRoot.slug}`} className="transition-colors" style={{ color: "var(--text-3)", textDecoration: "none" }}>
                 {selectedRoot.name}
               </Link>
               <ChevronRight className="h-3 w-3" style={{ color: "var(--text-3)" }} />
@@ -139,14 +130,11 @@ export default async function CatalogPage({
           <span style={{ color: "var(--text-2)", fontWeight: 600 }}>{title}</span>
         </nav>
 
-        {/* Header strip */}
-        <div className="flex flex-wrap items-end justify-between gap-4 mb-8 animate-slide-up">
+        {/* Header */}
+        <div className="flex flex-wrap items-end justify-between gap-4 mb-10 animate-slide-up">
           <div>
-            <p className="label-tag mb-2">— каталог</p>
-            <h1
-              className="font-black tracking-tight"
-              style={{ fontSize: "clamp(28px, 4vw, 48px)", letterSpacing: "-0.02em", color: "var(--text)" }}
-            >
+            <p className="label-tag mb-3">— каталог</p>
+            <h1 style={{ fontSize: "clamp(32px, 6vw, 72px)", fontWeight: 900, letterSpacing: "-0.04em", lineHeight: 0.88, color: "#fff" }}>
               {title}
             </h1>
           </div>
@@ -155,7 +143,7 @@ export default async function CatalogPage({
             {/* Sort pills */}
             <div
               className="hidden sm:flex items-center gap-1 rounded-full px-2 py-1.5"
-              style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}
+              style={{ background: "#111", border: "1px solid rgba(255,255,255,0.08)" }}
             >
               <ArrowUpDown className="h-3.5 w-3.5 ml-1 mr-0.5" style={{ color: "var(--text-3)" }} />
               {SORT_OPTIONS.map(({ value, label }) => (
@@ -164,7 +152,7 @@ export default async function CatalogPage({
                   href={buildSortHref(value)}
                   className="px-3 py-1 rounded-full text-xs font-semibold transition-all"
                   style={sort === value
-                    ? { background: "var(--accent)", color: "#fff" }
+                    ? { background: "var(--accent)", color: "#000" }
                     : { color: "var(--text-2)" }
                   }
                 >
@@ -173,7 +161,6 @@ export default async function CatalogPage({
               ))}
             </div>
 
-            {/* Mobile filter */}
             <div className="sm:hidden">
               <FilterDrawer
                 categories={rootCategories}
@@ -183,9 +170,7 @@ export default async function CatalogPage({
               />
             </div>
 
-            <span className="text-[13px] font-medium" style={{ color: "var(--text-3)" }}>
-              {total} товаров
-            </span>
+            <span style={{ fontSize: 13, color: "var(--text-3)", fontWeight: 500 }}>{total} товаров</span>
           </div>
         </div>
 
@@ -195,12 +180,9 @@ export default async function CatalogPage({
           <aside className="hidden lg:block w-56 shrink-0 animate-slide-up">
             <div
               className="rounded-2xl overflow-hidden sticky top-20"
-              style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}
+              style={{ background: "#111", border: "1px solid rgba(255,255,255,0.08)" }}
             >
-              <div
-                className="px-4 py-3"
-                style={{ borderBottom: "1px solid var(--border)" }}
-              >
+              <div className="px-4 py-3" style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
                 <p className="label-tag" style={{ color: "var(--text-3)" }}>Категории</p>
               </div>
               <div className="py-1.5">
@@ -209,8 +191,8 @@ export default async function CatalogPage({
                   className="flex items-center justify-between px-4 py-2.5 text-sm transition-all"
                   style={
                     !selectedCategory && sp.featured !== "1"
-                      ? { color: "var(--accent)", fontWeight: 700, background: "rgba(0,56,255,0.06)" }
-                      : { color: "var(--text-2)" }
+                      ? { color: "var(--accent)", fontWeight: 700, background: "rgba(0,204,255,0.07)" }
+                      : { color: "var(--text-2)", textDecoration: "none" }
                   }
                 >
                   Все товары
@@ -222,40 +204,36 @@ export default async function CatalogPage({
                       className="flex items-center justify-between px-4 py-2.5 text-sm font-medium transition-all"
                       style={
                         selectedCategory?.id === cat.id
-                          ? { color: "var(--accent)", fontWeight: 700, background: "rgba(0,56,255,0.06)" }
+                          ? { color: "var(--accent)", fontWeight: 700, background: "rgba(0,204,255,0.07)", textDecoration: "none" }
                           : selectedRoot?.id === cat.id
-                          ? { color: "var(--text)" }
-                          : { color: "var(--text-2)" }
+                          ? { color: "#fff", textDecoration: "none" }
+                          : { color: "var(--text-2)", textDecoration: "none" }
                       }
                     >
                       <span>{cat.name}</span>
                       {cat._count.products > 0 && (
-                        <span className="text-xs" style={{ color: "var(--text-3)" }}>{cat._count.products}</span>
+                        <span style={{ fontSize: 11, color: "var(--text-3)" }}>{cat._count.products}</span>
                       )}
                     </Link>
-                    {(selectedRoot?.id === cat.id || selectedCategory?.id === cat.id) &&
-                      cat.children.length > 0 && (
-                        <div className="ml-5 my-0.5" style={{ borderLeft: "2px solid var(--border)" }}>
-                          {cat.children.map((child) => (
-                            <Link
-                              key={child.id}
-                              href={`${catalogBase}?category=${child.slug}${sort ? `&sort=${sort}` : ""}`}
-                              className="flex items-center gap-2 px-3 py-2 text-sm transition-colors"
-                              style={
-                                selectedCategory?.id === child.id
-                                  ? { color: "var(--accent)", fontWeight: 700 }
-                                  : { color: "var(--text-2)" }
-                              }
-                            >
-                              <span
-                                className="w-1.5 h-1.5 rounded-full shrink-0 opacity-60"
-                                style={{ background: "currentColor" }}
-                              />
-                              {child.name}
-                            </Link>
-                          ))}
-                        </div>
-                      )}
+                    {(selectedRoot?.id === cat.id || selectedCategory?.id === cat.id) && cat.children.length > 0 && (
+                      <div className="ml-5 my-0.5" style={{ borderLeft: "1px solid rgba(255,255,255,0.08)" }}>
+                        {cat.children.map((child) => (
+                          <Link
+                            key={child.id}
+                            href={`${catalogBase}?category=${child.slug}${sort ? `&sort=${sort}` : ""}`}
+                            className="flex items-center gap-2 px-3 py-2 text-sm transition-colors"
+                            style={
+                              selectedCategory?.id === child.id
+                                ? { color: "var(--accent)", fontWeight: 700, textDecoration: "none" }
+                                : { color: "var(--text-2)", textDecoration: "none" }
+                            }
+                          >
+                            <span className="w-1.5 h-1.5 rounded-full shrink-0 opacity-50" style={{ background: "currentColor" }} />
+                            {child.name}
+                          </Link>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -266,44 +244,29 @@ export default async function CatalogPage({
           <div className="flex-1 min-w-0">
             {products.length === 0 ? (
               <div className="space-y-8">
-                <div
-                  className="rounded-2xl p-12 text-center"
-                  style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}
-                >
-                  <p
-                    className="font-black mb-2"
-                    style={{ fontSize: 20, color: "var(--text)", letterSpacing: "-0.02em" }}
-                  >
+                <div className="rounded-2xl p-12 text-center" style={{ background: "#111", border: "1px solid rgba(255,255,255,0.08)" }}>
+                  <p style={{ fontSize: 22, fontWeight: 900, letterSpacing: "-0.02em", color: "#fff", marginBottom: 8 }}>
                     Товары не найдены
                   </p>
-                  <p className="text-sm mb-6" style={{ color: "var(--text-3)" }}>
+                  <p style={{ fontSize: 14, color: "var(--text-3)", marginBottom: 24 }}>
                     Попробуй другую категорию или сбрось фильтры
                   </p>
-                  <Link
-                    href={catalogBase}
-                    className="text-sm font-semibold transition-colors"
-                    style={{ color: "var(--accent)" }}
-                  >
+                  <Link href={catalogBase} style={{ fontSize: 13, fontWeight: 700, color: "var(--accent)", textDecoration: "none" }}>
                     Смотреть все товары →
                   </Link>
                 </div>
-
                 {emptyFallback.length > 0 && (
                   <div>
                     <p className="label-tag mb-4">— может понравиться</p>
-                    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-4">
-                      {emptyFallback.map((p) => (
-                        <ProductCard key={p.id} product={p} storeSlug={slug} />
-                      ))}
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
+                      {emptyFallback.map((p) => <ProductCard key={p.id} product={p} storeSlug={slug} />)}
                     </div>
                   </div>
                 )}
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-4 animate-slide-up delay-100">
-                {products.map((product) => (
-                  <ProductCard key={product.id} product={product} storeSlug={slug} />
-                ))}
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4 animate-slide-up delay-100">
+                {products.map((product) => <ProductCard key={product.id} product={product} storeSlug={slug} />)}
               </div>
             )}
 
@@ -311,37 +274,24 @@ export default async function CatalogPage({
             {totalPages > 1 && (
               <div className="flex justify-center items-center gap-2 mt-10 flex-wrap">
                 {page > 1 && (
-                  <Link
-                    href={buildPageHref(page - 1)}
-                    className="px-4 py-2 text-sm rounded-full transition-all"
-                    style={{ background: "var(--bg-card)", border: "1px solid var(--border)", color: "var(--text-2)" }}
-                  >
+                  <Link href={buildPageHref(page - 1)} className="px-4 py-2 text-sm rounded-full transition-all" style={{ background: "#111", border: "1px solid rgba(255,255,255,0.08)", color: "var(--text-2)", textDecoration: "none" }}>
                     ← Назад
                   </Link>
                 )}
                 {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
                   const p = totalPages <= 7 ? i + 1 : page <= 4 ? i + 1 : page >= totalPages - 3 ? totalPages - 6 + i : page - 3 + i
                   return (
-                    <Link
-                      key={p}
-                      href={buildPageHref(p)}
-                      className="w-10 h-10 flex items-center justify-center text-sm rounded-full transition-all"
-                      style={
-                        p === page
-                          ? { background: "var(--accent)", color: "#fff", fontWeight: 700 }
-                          : { background: "var(--bg-card)", border: "1px solid var(--border)", color: "var(--text-2)" }
-                      }
-                    >
+                    <Link key={p} href={buildPageHref(p)} className="w-10 h-10 flex items-center justify-center text-sm rounded-full transition-all" style={
+                      p === page
+                        ? { background: "var(--accent)", color: "#000", fontWeight: 700, textDecoration: "none" }
+                        : { background: "#111", border: "1px solid rgba(255,255,255,0.08)", color: "var(--text-2)", textDecoration: "none" }
+                    }>
                       {p}
                     </Link>
                   )
                 })}
                 {page < totalPages && (
-                  <Link
-                    href={buildPageHref(page + 1)}
-                    className="px-4 py-2 text-sm rounded-full transition-all"
-                    style={{ background: "var(--bg-card)", border: "1px solid var(--border)", color: "var(--text-2)" }}
-                  >
+                  <Link href={buildPageHref(page + 1)} className="px-4 py-2 text-sm rounded-full transition-all" style={{ background: "#111", border: "1px solid rgba(255,255,255,0.08)", color: "var(--text-2)", textDecoration: "none" }}>
                     Вперёд →
                   </Link>
                 )}
