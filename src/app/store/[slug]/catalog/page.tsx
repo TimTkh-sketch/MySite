@@ -7,7 +7,7 @@ import { ChevronRight, ArrowUpDown } from "lucide-react"
 
 const SORT_OPTIONS = [
   { value: "", label: "По умолчанию" },
-  { value: "new", label: "Сначала новые" },
+  { value: "new", label: "Новые" },
   { value: "price_asc", label: "Цена ↑" },
   { value: "price_desc", label: "Цена ↓" },
   { value: "popular", label: "Популярные" },
@@ -117,51 +117,63 @@ export default async function CatalogPage({
   }
 
   return (
-    <div className="min-h-screen">
-      <div className="max-w-7xl mx-auto px-4 py-6">
+    <div className="min-h-screen" style={{ background: "var(--bg)", paddingTop: 72 }}>
+      <div className="max-w-[1400px] mx-auto px-6 lg:px-10 py-8">
 
         {/* Breadcrumb */}
-        <nav className="flex items-center gap-1.5 text-xs text-[#bbb] mb-5 animate-fade-in flex-wrap">
-          <Link href={base} className="hover:text-[#666] transition-colors active:scale-95">Главная</Link>
-          <ChevronRight className="h-3 w-3 text-[#d0d0d0]" />
+        <nav className="flex items-center gap-1.5 mb-6 flex-wrap animate-fade-in" style={{ fontSize: 12 }}>
+          <Link href={base} className="transition-colors" style={{ color: "var(--text-3)" }}>Главная</Link>
+          <ChevronRight className="h-3 w-3" style={{ color: "var(--text-3)" }} />
           {selectedRoot && selectedRoot.id !== selectedCategory?.id && (
             <>
-              <Link href={`${catalogBase}?category=${selectedRoot.slug}`} className="hover:text-[#666] transition-colors">
+              <Link
+                href={`${catalogBase}?category=${selectedRoot.slug}`}
+                className="transition-colors"
+                style={{ color: "var(--text-3)" }}
+              >
                 {selectedRoot.name}
               </Link>
-              <ChevronRight className="h-3 w-3 text-[#d0d0d0]" />
+              <ChevronRight className="h-3 w-3" style={{ color: "var(--text-3)" }} />
             </>
           )}
-          <span className="text-[#666] font-semibold">{title}</span>
+          <span style={{ color: "var(--text-2)", fontWeight: 600 }}>{title}</span>
         </nav>
 
         {/* Header strip */}
-        <div className="flex flex-wrap items-center justify-between gap-3 mb-5 animate-slide-up">
+        <div className="flex flex-wrap items-end justify-between gap-4 mb-8 animate-slide-up">
           <div>
-            <p className="label-tag mb-1 text-[#999]">— КАТАЛОГ</p>
-            <h1 className="text-2xl font-black text-[#1a1a1a] tracking-tight">{title}</h1>
+            <p className="label-tag mb-2">— каталог</p>
+            <h1
+              className="font-black tracking-tight"
+              style={{ fontSize: "clamp(28px, 4vw, 48px)", letterSpacing: "-0.02em", color: "var(--text)" }}
+            >
+              {title}
+            </h1>
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap">
-            {/* Sort pills — desktop */}
-            <div className="hidden sm:flex items-center gap-1 bg-[#f5f5f5] border border-[#e8e8e8] rounded-full px-2 py-1.5">
-              <ArrowUpDown className="h-3.5 w-3.5 text-[#bbb] ml-1 mr-0.5" />
+          <div className="flex items-center gap-3 flex-wrap">
+            {/* Sort pills */}
+            <div
+              className="hidden sm:flex items-center gap-1 rounded-full px-2 py-1.5"
+              style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}
+            >
+              <ArrowUpDown className="h-3.5 w-3.5 ml-1 mr-0.5" style={{ color: "var(--text-3)" }} />
               {SORT_OPTIONS.map(({ value, label }) => (
                 <Link
                   key={value}
                   href={buildSortHref(value)}
-                  className={`px-3 py-1 rounded-full text-xs font-semibold transition-all duration-150 ${
-                    sort === value
-                      ? "bg-[#fff3ee] text-[#F26522] border border-[#F26522]/20"
-                      : "text-[#666] hover:text-[#1a1a1a] hover:bg-[#f0f0f0]"
-                  }`}
+                  className="px-3 py-1 rounded-full text-xs font-semibold transition-all"
+                  style={sort === value
+                    ? { background: "var(--accent)", color: "#fff" }
+                    : { color: "var(--text-2)" }
+                  }
                 >
                   {label}
                 </Link>
               ))}
             </div>
 
-            {/* Filter drawer — mobile */}
+            {/* Mobile filter */}
             <div className="sm:hidden">
               <FilterDrawer
                 categories={rootCategories}
@@ -171,26 +183,35 @@ export default async function CatalogPage({
               />
             </div>
 
-            <span className="text-sm text-[#999] font-medium">{total} товаров</span>
+            <span className="text-[13px] font-medium" style={{ color: "var(--text-3)" }}>
+              {total} товаров
+            </span>
           </div>
         </div>
 
-        <div className="flex flex-col gap-5 lg:flex-row">
+        <div className="flex flex-col gap-6 lg:flex-row">
 
-          {/* Sidebar — desktop */}
-          <aside className="hidden lg:block w-60 shrink-0 animate-slide-up">
-            <div className="glass rounded-2xl overflow-hidden sticky top-24">
-              <div className="px-4 py-3 border-b border-[#e8e8e8]">
-                <p className="label-tag text-[#999]">КАТЕГОРИИ</p>
+          {/* Sidebar */}
+          <aside className="hidden lg:block w-56 shrink-0 animate-slide-up">
+            <div
+              className="rounded-2xl overflow-hidden sticky top-20"
+              style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}
+            >
+              <div
+                className="px-4 py-3"
+                style={{ borderBottom: "1px solid var(--border)" }}
+              >
+                <p className="label-tag" style={{ color: "var(--text-3)" }}>Категории</p>
               </div>
               <div className="py-1.5">
                 <Link
                   href={catalogBase}
-                  className={`flex items-center justify-between px-4 py-2.5 text-sm transition-all duration-150 ${
+                  className="flex items-center justify-between px-4 py-2.5 text-sm transition-all"
+                  style={
                     !selectedCategory && sp.featured !== "1"
-                      ? "text-[#F26522] font-black bg-[#fff3ee]"
-                      : "text-[#666] hover:bg-[#f5f5f5] hover:text-[#1a1a1a]"
-                  }`}
+                      ? { color: "var(--accent)", fontWeight: 700, background: "rgba(0,56,255,0.06)" }
+                      : { color: "var(--text-2)" }
+                  }
                 >
                   Все товары
                 </Link>
@@ -198,33 +219,38 @@ export default async function CatalogPage({
                   <div key={cat.id}>
                     <Link
                       href={`${catalogBase}?category=${cat.slug}${sort ? `&sort=${sort}` : ""}`}
-                      className={`flex items-center justify-between px-4 py-2.5 text-sm font-medium transition-all duration-150 ${
+                      className="flex items-center justify-between px-4 py-2.5 text-sm font-medium transition-all"
+                      style={
                         selectedCategory?.id === cat.id
-                          ? "text-[#F26522] font-black bg-[#fff3ee]"
+                          ? { color: "var(--accent)", fontWeight: 700, background: "rgba(0,56,255,0.06)" }
                           : selectedRoot?.id === cat.id
-                          ? "text-[#1a1a1a]"
-                          : "text-[#666] hover:bg-[#f5f5f5] hover:text-[#1a1a1a]"
-                      }`}
+                          ? { color: "var(--text)" }
+                          : { color: "var(--text-2)" }
+                      }
                     >
                       <span>{cat.name}</span>
                       {cat._count.products > 0 && (
-                        <span className="text-xs text-[#bbb]">{cat._count.products}</span>
+                        <span className="text-xs" style={{ color: "var(--text-3)" }}>{cat._count.products}</span>
                       )}
                     </Link>
                     {(selectedRoot?.id === cat.id || selectedCategory?.id === cat.id) &&
                       cat.children.length > 0 && (
-                        <div className="border-l-2 border-[#e8e8e8] ml-5 my-0.5">
+                        <div className="ml-5 my-0.5" style={{ borderLeft: "2px solid var(--border)" }}>
                           {cat.children.map((child) => (
                             <Link
                               key={child.id}
                               href={`${catalogBase}?category=${child.slug}${sort ? `&sort=${sort}` : ""}`}
-                              className={`flex items-center gap-2 px-3 py-2 text-sm transition-colors ${
+                              className="flex items-center gap-2 px-3 py-2 text-sm transition-colors"
+                              style={
                                 selectedCategory?.id === child.id
-                                  ? "text-[#F26522] font-bold"
-                                  : "text-[#666] hover:text-[#1a1a1a] hover:bg-[#f5f5f5]"
-                              }`}
+                                  ? { color: "var(--accent)", fontWeight: 700 }
+                                  : { color: "var(--text-2)" }
+                              }
                             >
-                              <span className="w-1.5 h-1.5 rounded-full bg-current shrink-0 opacity-60" />
+                              <span
+                                className="w-1.5 h-1.5 rounded-full shrink-0 opacity-60"
+                                style={{ background: "currentColor" }}
+                              />
                               {child.name}
                             </Link>
                           ))}
@@ -240,15 +266,23 @@ export default async function CatalogPage({
           <div className="flex-1 min-w-0">
             {products.length === 0 ? (
               <div className="space-y-8">
-                <div className="glass rounded-2xl p-10 text-center">
-                  <div className="w-16 h-16 rounded-full bg-[#f5f5f5] border border-[#e8e8e8] flex items-center justify-center mx-auto mb-4">
-                    <span className="text-2xl">🔍</span>
-                  </div>
-                  <p className="font-black text-[#1a1a1a] mb-1">Товары не найдены</p>
-                  <p className="text-sm text-[#999] mb-4">Попробуй другую категорию или сбрось фильтры</p>
+                <div
+                  className="rounded-2xl p-12 text-center"
+                  style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}
+                >
+                  <p
+                    className="font-black mb-2"
+                    style={{ fontSize: 20, color: "var(--text)", letterSpacing: "-0.02em" }}
+                  >
+                    Товары не найдены
+                  </p>
+                  <p className="text-sm mb-6" style={{ color: "var(--text-3)" }}>
+                    Попробуй другую категорию или сбрось фильтры
+                  </p>
                   <Link
                     href={catalogBase}
-                    className="inline-flex items-center gap-1.5 text-sm font-bold text-[#666] hover:text-[#F26522] transition-colors active:scale-95"
+                    className="text-sm font-semibold transition-colors"
+                    style={{ color: "var(--accent)" }}
                   >
                     Смотреть все товары →
                   </Link>
@@ -256,7 +290,7 @@ export default async function CatalogPage({
 
                 {emptyFallback.length > 0 && (
                   <div>
-                    <p className="label-tag mb-4 text-[#999]">— МОЖЕТ ПОНРАВИТЬСЯ</p>
+                    <p className="label-tag mb-4">— может понравиться</p>
                     <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-4">
                       {emptyFallback.map((p) => (
                         <ProductCard key={p.id} product={p} storeSlug={slug} />
@@ -275,9 +309,13 @@ export default async function CatalogPage({
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <div className="flex justify-center items-center gap-1.5 mt-8 flex-wrap">
+              <div className="flex justify-center items-center gap-2 mt-10 flex-wrap">
                 {page > 1 && (
-                  <Link href={buildPageHref(page - 1)} className="px-4 py-2 text-sm rounded-xl bg-[#f5f5f5] border border-[#e8e8e8] text-[#666] hover:bg-[#ffe8d8] hover:text-[#F26522] hover:scale-105 active:scale-95 transition-all duration-150">
+                  <Link
+                    href={buildPageHref(page - 1)}
+                    className="px-4 py-2 text-sm rounded-full transition-all"
+                    style={{ background: "var(--bg-card)", border: "1px solid var(--border)", color: "var(--text-2)" }}
+                  >
                     ← Назад
                   </Link>
                 )}
@@ -287,18 +325,23 @@ export default async function CatalogPage({
                     <Link
                       key={p}
                       href={buildPageHref(p)}
-                      className={`w-10 h-10 flex items-center justify-center text-sm rounded-xl border transition-all duration-150 hover:scale-105 active:scale-95 ${
+                      className="w-10 h-10 flex items-center justify-center text-sm rounded-full transition-all"
+                      style={
                         p === page
-                          ? "bg-[#F26522] text-white border-[#F26522] font-black shadow-md"
-                          : "border-[#e8e8e8] bg-transparent text-[#666] hover:bg-[#f5f5f5] hover:text-[#1a1a1a]"
-                      }`}
+                          ? { background: "var(--accent)", color: "#fff", fontWeight: 700 }
+                          : { background: "var(--bg-card)", border: "1px solid var(--border)", color: "var(--text-2)" }
+                      }
                     >
                       {p}
                     </Link>
                   )
                 })}
                 {page < totalPages && (
-                  <Link href={buildPageHref(page + 1)} className="px-4 py-2 text-sm rounded-xl bg-[#f5f5f5] border border-[#e8e8e8] text-[#666] hover:bg-[#ffe8d8] hover:text-[#F26522] hover:scale-105 active:scale-95 transition-all duration-150">
+                  <Link
+                    href={buildPageHref(page + 1)}
+                    className="px-4 py-2 text-sm rounded-full transition-all"
+                    style={{ background: "var(--bg-card)", border: "1px solid var(--border)", color: "var(--text-2)" }}
+                  >
                     Вперёд →
                   </Link>
                 )}

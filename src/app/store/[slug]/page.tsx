@@ -9,6 +9,7 @@ import { MiniBanners } from "@/components/store/mini-banners"
 import { HeroCarousel } from "@/components/store/hero-carousel"
 import { CountUp } from "@/components/store/count-up"
 import { ScrollReveal } from "@/components/store/scroll-reveal"
+import { Marquee } from "@/components/store/motion"
 import { formatPrice } from "@/lib/utils"
 
 export default async function StorePage({ params }: { params: Promise<{ slug: string }> }) {
@@ -61,6 +62,19 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
           </div>
         </div>
       )}
+
+      {/* ══ TICKER ══════════════════════════════════════════════ */}
+      <div style={{ borderTop: "1px solid var(--border)", borderBottom: "1px solid var(--border)", background: "var(--bg-card)" }}>
+        <Marquee speed={45} className="py-3">
+          <div className="flex items-center gap-10 px-6" style={{ whiteSpace: "nowrap" }}>
+            {["БЕСПЛАТНАЯ ДОСТАВКА", "ГАРАНТИЯ 2 ГОДА", "ОРИГИНАЛЬНАЯ ТЕХНИКА", "12 ЛЕТ НА РЫНКЕ", "ОФИЦИАЛЬНЫЙ ДИЛЕР"].map(text => (
+              <span key={text} style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.10em", color: "var(--text-2)" }}>
+                {text}<span style={{ color: "var(--accent)", marginLeft: 10 }}>·</span>
+              </span>
+            ))}
+          </div>
+        </Marquee>
+      </div>
 
       {/* ══ CATEGORIES ══════════════════════════════════════════ */}
       {store.categories.length > 0 && (
